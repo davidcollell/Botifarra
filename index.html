@@ -1,0 +1,2958 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Botifarra</title>
+<meta name="theme-color" content="#0f2e21">
+<meta name="description" content="Botifarra amb les regles clàssiques per jugar contra la IA">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Botifarra">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --felt-1:#1b4332;
+  --felt-2:#0f2e21;
+  --wood:#5c3a21;
+  --wood-dark:#3c2414;
+  --cream:#f6efe1;
+  --ink:#241c14;
+  --gold:#d1a13e;
+  --gold-bright:#f0c869;
+  --red:#a8342b;
+  --slate:#2c3440;
+  --olive:#4f6b2d;
+  --line-length: 62ch;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Work Sans', -apple-system, sans-serif;
+}
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+*{box-sizing:border-box;}
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 50% -10%, #234a37 0%, var(--felt-2) 55%, #081c14 100%);
+  font-family:var(--font-body);
+  color:var(--cream);
+  overflow-x:hidden;
+}
+body{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+  padding:14px 10px 30px;
+}
+
+/* ---------- header ---------- */
+.masthead{
+  width:100%;
+  max-width:1040px;
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+  padding:2px 6px 14px;
+  border-bottom:1px solid rgba(240,200,105,.22);
+  margin-bottom:14px;
+  flex-wrap:wrap;
+}
+.masthead h1{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-style:italic;
+  font-size:clamp(28px,4.4vw,40px);
+  margin:0;
+  letter-spacing:.3px;
+  color:var(--gold-bright);
+  text-shadow:0 2px 10px rgba(0,0,0,.4);
+}
+.masthead .tagline{
+  font-size:13px;
+  color:#cdd9cf;
+  max-width:30ch;
+  line-height:1.4;
+}
+.new-game-btn{
+  background:transparent;
+  border:1px solid rgba(240,200,105,.5);
+  color:var(--gold-bright);
+  font-family:var(--font-body);
+  font-size:13px;
+  padding:7px 14px;
+  border-radius:3px;
+  cursor:pointer;
+  transition:background .15s, transform .1s;
+  white-space:nowrap;
+}
+.new-game-btn:hover{ background:rgba(240,200,105,.12); }
+.new-game-btn:active{ transform:scale(.97); }
+.masthead-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.assist-toggle{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  background:rgba(240,200,105,.1);
+  border:1px solid rgba(240,200,105,.5);
+  color:var(--gold-bright);
+  font-family:var(--font-body);
+  font-size:12px;
+  padding:6px 12px;
+  border-radius:20px;
+  cursor:pointer;
+  transition:background .15s, transform .1s;
+  white-space:nowrap;
+}
+.assist-toggle .dot{
+  width:9px; height:9px;
+  border-radius:50%;
+  background:var(--gold-bright);
+  flex:none;
+  transition:background .15s, box-shadow .15s;
+  box-shadow:0 0 6px rgba(240,200,105,.7);
+}
+.assist-toggle:hover{ background:rgba(240,200,105,.2); }
+.assist-toggle:active{ transform:scale(.97); }
+.assist-toggle[aria-pressed="false"]{
+  color:#b9c2bb;
+  border-color:rgba(255,255,255,.25);
+  background:rgba(255,255,255,.04);
+}
+.assist-toggle[aria-pressed="false"] .dot{
+  background:#5b6b5f;
+  box-shadow:none;
+}
+
+/* ---------- layout shell ---------- */
+.game-shell{
+  width:100%;
+  max-width:1040px;
+  display:grid;
+  grid-template-columns: 1fr 230px;
+  gap:18px;
+  align-items:start;
+}
+@media (max-width:820px){
+  .game-shell{ grid-template-columns:1fr; }
+  .sidebar{ order:2; flex-direction:row; flex-wrap:wrap; }
+}
+
+/* ---------- table ---------- */
+.table-wrap{
+  position:relative;
+  width:100%;
+  aspect-ratio: 4 / 3;
+  min-height:460px;
+}
+.table{
+  position:absolute;
+  inset:0;
+  border-radius:50% / 38%;
+  background:
+    radial-gradient(ellipse at 50% 40%, #2f6b4d 0%, var(--felt-1) 46%, var(--felt-2) 82%);
+  border:10px solid var(--wood);
+  outline:2px solid var(--wood-dark);
+  box-shadow:
+    inset 0 0 60px rgba(0,0,0,.55),
+    0 18px 40px rgba(0,0,0,.5);
+}
+.table::before{
+  content:"";
+  position:absolute; inset:14px;
+  border-radius:50% / 38%;
+  border:1px solid rgba(240,200,105,.14);
+  pointer-events:none;
+}
+
+.zone{
+  position:absolute;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  z-index:3;
+}
+.zone-north{ top:4%; left:50%; transform:translateX(-50%); }
+.zone-south{ bottom:2%; left:50%; transform:translateX(-50%); }
+.zone-west{ left:1%; top:50%; transform:translateY(-50%); flex-direction:row; }
+.zone-east{ right:1%; top:50%; transform:translateY(-50%); flex-direction:row-reverse; }
+
+.player-tag{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:4px 10px 4px 6px;
+  background:rgba(15,25,18,.55);
+  border:1px solid rgba(240,200,105,.18);
+  border-radius:20px;
+  font-size:12.5px;
+  letter-spacing:.2px;
+  white-space:nowrap;
+  transition:box-shadow .25s, border-color .25s;
+}
+.player-tag .dot{
+  width:9px;height:9px;border-radius:50%;
+  background:#5b6b5f;
+  flex:none;
+}
+.player-tag.team0 .dot{ background:var(--gold-bright); }
+.player-tag.team1 .dot{ background:#8fb5a3; }
+.player-tag .nm{ font-weight:600; }
+.player-tag .role{ opacity:.65; font-size:10.5px; }
+.zone.active .player-tag{
+  border-color:var(--gold-bright);
+  animation:activePulse 1.1s ease-in-out infinite;
+}
+@keyframes activePulse{
+  0%,100%{ box-shadow:0 0 0 3px rgba(240,200,105,.18), 0 0 10px rgba(240,200,105,.25); }
+  50%{ box-shadow:0 0 0 5px rgba(240,200,105,.3), 0 0 20px rgba(240,200,105,.55); }
+}
+.zone.active .player-tag .dot{
+  animation:dotPulse 1.1s ease-in-out infinite;
+}
+@keyframes dotPulse{
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.5); }
+}
+.zone.dealer-lead .player-tag::after{
+  content:"cant";
+  font-size:9px;
+  color:var(--felt-2);
+  background:var(--gold-bright);
+  padding:1px 5px;
+  border-radius:8px;
+  font-weight:700;
+  letter-spacing:.4px;
+}
+
+.hand{
+  display:flex;
+  gap:4px;
+}
+.hand.hand-south{ gap:-6px; }
+.hand.hand-vert{ flex-direction:column; gap:-10px; }
+
+/* ---------- cards ---------- */
+.card{
+  --w:66px; --h:96px;
+  width:var(--w); height:var(--h);
+  background:linear-gradient(160deg,#fffdf7,var(--cream));
+  border-radius:7px;
+  border:1px solid rgba(0,0,0,.18);
+  box-shadow:0 3px 6px rgba(0,0,0,.35);
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:4px 5px;
+  color:var(--ink);
+  flex:none;
+  user-select:none;
+}
+.card::before{
+  content:"";
+  position:absolute;
+  inset:3px;
+  border:1px solid rgba(20,15,8,.65);
+  border-radius:3px;
+  pointer-events:none;
+}
+.card::after{
+  content:"";
+  position:absolute;
+  left:50%; top:1px;
+  width:11px; height:2px;
+  background:var(--cream);
+  transform:translateX(-50%);
+  box-shadow:0 calc(var(--h) - 4px) 0 var(--cream);
+  pointer-events:none;
+}
+.card.small::before{ inset:2px; }
+.card.small::after{ width:8px; box-shadow:0 calc(var(--h) - 3px) 0 var(--cream); }
+.card.small{ --w:44px; --h:64px; padding:2px 3px; }
+.card .corner{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:17px;
+  line-height:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+}
+.card.small .corner{ font-size:10px; }
+.card .corner svg{ width:13px; height:13px; }
+.card.small .corner svg{ width:8px; height:8px; }
+.card .corner.bottom{ align-self:flex-end; transform:rotate(180deg); }
+.card .center-icon{
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.card .center-icon svg{ width:26px; height:26px; opacity:.9; }
+.card.small .center-icon svg{ width:16px; height:16px; }
+
+.pip-field{
+  position:absolute;
+  top:20px; left:6px; right:6px; bottom:20px;
+}
+.card.small .pip-field{ top:11px; left:3px; right:3px; bottom:11px; }
+.pip{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  width:14px; height:14px;
+}
+.pip svg{ width:100%; height:100%; display:block; }
+.pip.big{ width:27px; height:27px; }
+.card.small .pip{ width:8px; height:8px; }
+.card.small .pip.big{ width:15px; height:15px; }
+
+.court-figure{
+  position:absolute; inset:14px 5px;
+  display:flex; align-items:center; justify-content:center;
+}
+.court-figure svg.figure-base{ height:100%; width:auto; max-width:100%; }
+.held-icon{
+  position:absolute;
+  top:2px; right:2px;
+  width:15px; height:15px;
+}
+.held-icon svg{ width:100%; height:100%; display:block; }
+.card.small .court-figure{ inset:9px 3px; }
+.card.suit-oros{ color:#96660c; }
+.card.suit-copes{ color:var(--red); }
+.card.suit-espases{ color:var(--slate); }
+.card.suit-bastos{ color:var(--olive); }
+
+.card-back{
+  --w:44px; --h:64px;
+  width:var(--w); height:var(--h);
+  border-radius:7px;
+  border:1px solid rgba(0,0,0,.4);
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.14) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.14) 0 1px, transparent 1px 7px),
+    #1c2b52;
+  box-shadow:0 3px 6px rgba(0,0,0,.35);
+  position:relative;
+  flex:none;
+}
+.card-back::after{
+  content:"";
+  position:absolute; inset:5px;
+  border:1px solid rgba(240,200,105,.5);
+  border-radius:4px;
+}
+.hand-vert .card-back{ margin-top:-46px; }
+.hand-vert .card-back:first-child{ margin-top:0; }
+.hand.hand-north .card-back,
+.hand.hand-south-back .card-back{ margin-left:-20px; }
+
+.hand-south .card{
+  cursor:default;
+  transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  margin-left:-22px;
+}
+.hand-south .card:first-child{ margin-left:0; }
+.hand-south .card.playable{ cursor:pointer; }
+.hand-south .card.playable:hover{
+  transform:translateY(-14px) scale(1.04);
+  box-shadow:0 10px 18px rgba(0,0,0,.5);
+  z-index:5;
+}
+.hand-south .card.unplayable{
+  filter:grayscale(.55) brightness(.7);
+  cursor:not-allowed;
+}
+.hand-south .card.playable{
+  box-shadow:0 3px 6px rgba(0,0,0,.35), 0 0 0 2px rgba(240,200,105,.35);
+  animation:playableGlow 1.8s ease-in-out infinite;
+}
+@keyframes playableGlow{
+  0%,100%{ box-shadow:0 3px 6px rgba(0,0,0,.35), 0 0 0 2px rgba(240,200,105,.3); }
+  50%{ box-shadow:0 3px 10px rgba(0,0,0,.4), 0 0 0 2px rgba(240,200,105,.75), 0 0 14px rgba(240,200,105,.4); }
+}
+.hand-south .card.playable:hover{ animation-play-state:paused; }
+
+.hand-south .card.clickable{
+  cursor:pointer;
+}
+.hand-south .card.clickable:hover{
+  transform:translateY(-14px) scale(1.04);
+  box-shadow:0 10px 18px rgba(0,0,0,.5);
+  z-index:5;
+}
+.hand-south .card.shake{
+  animation:cardShake .38s ease;
+}
+@keyframes cardShake{
+  0%,100%{ transform:translateX(0); }
+  20%{ transform:translateX(-7px); }
+  40%{ transform:translateX(6px); }
+  60%{ transform:translateX(-4px); }
+  80%{ transform:translateX(3px); }
+}
+
+/* deal-in animation */
+@keyframes dealIn{
+  from{ opacity:0; transform:translateY(-26px) scale(.55) rotate(-8deg); }
+  to{ opacity:1; transform:none; }
+}
+.deal-anim{ animation:dealIn .38s cubic-bezier(.2,.8,.3,1.1) both; }
+
+.shuffle-stack{
+  position:absolute;
+  top:50%; left:50%;
+  width:44px; height:64px;
+  z-index:25;
+  pointer-events:none;
+}
+.shuffle-stack .card-back{
+  position:absolute; top:0; left:0;
+  animation:shuffleJitter .5s ease-in-out infinite;
+}
+@keyframes shuffleJitter{
+  0%,100%{ transform:translate(-50%,-50%) rotate(var(--rot,0deg)) translateX(0); }
+  50%{ transform:translate(-50%,-50%) rotate(calc(var(--rot,0deg) * -1)) translateX(var(--shift,4px)); }
+}
+.shuffle-stack.fade-out{
+  transition:opacity .25s ease;
+  opacity:0;
+}
+
+/* ---------- center trick area ---------- */
+.center-slots{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:246px; height:192px;
+  z-index:2;
+}
+.slot{
+  position:absolute;
+  width:64px; height:94px;
+  border:1px dashed rgba(240,200,105,.18);
+  border-radius:7px;
+}
+.slot-n{ top:0; left:50%; transform:translateX(-50%); }
+.slot-s{ bottom:0; left:50%; transform:translateX(-50%); }
+.slot-w{ left:0; top:50%; transform:translateY(-50%); }
+.slot-e{ right:0; top:50%; transform:translateY(-50%); }
+.slot .card{ position:absolute; inset:0; width:100%; height:100%; }
+.slot .card.landed{ animation:landBounce .4s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes landBounce{
+  0%{ transform:scale(1.18); }
+  60%{ transform:scale(.94); }
+  100%{ transform:scale(1); }
+}
+.slot .card.trick-winner{
+  animation:winnerGlow .55s ease-in-out 2;
+}
+@keyframes winnerGlow{
+  0%,100%{ box-shadow:0 3px 6px rgba(0,0,0,.35); transform:scale(1); }
+  50%{ box-shadow:0 0 0 3px rgba(240,200,105,.5), 0 0 24px 6px rgba(240,200,105,.6); transform:scale(1.09); }
+}
+
+.flight-layer{
+  position:absolute; inset:0;
+  pointer-events:none;
+  z-index:20;
+}
+.flight-layer .card, .flight-layer .card-back{
+  position:absolute;
+  top:0; left:0;
+  transition: transform .46s cubic-bezier(.25,.55,.25,1), opacity .3s ease .22s;
+  will-change:transform;
+}
+.flight-layer .card.collecting, .flight-layer .card-back.collecting{
+  transition: transform .5s cubic-bezier(.4,.2,.4,1), opacity .5s ease .15s;
+}
+
+/* ---------- trump badge + message ---------- */
+.trump-badge{
+  position:absolute;
+  top:12px; left:12px;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  background:rgba(15,25,18,.62);
+  border:1px solid rgba(240,200,105,.3);
+  padding:6px 12px 6px 8px;
+  border-radius:20px;
+  font-size:12px;
+}
+.trump-badge.reveal{ animation:trumpReveal .55s cubic-bezier(.3,1.4,.4,1) both; }
+@keyframes trumpReveal{
+  0%{ transform:scale(.4) rotate(-12deg); opacity:0; }
+  65%{ transform:scale(1.15) rotate(3deg); opacity:1; }
+  100%{ transform:scale(1) rotate(0); opacity:1; }
+}
+.trump-badge svg{ width:20px; height:20px; }
+.trump-badge .lbl{ opacity:.7; font-size:10px; text-transform:none; }
+.trump-badge .val{ font-weight:600; }
+
+.message-banner{
+  position:absolute;
+  top:12px; right:12px;
+  left:auto;
+  max-width:56%;
+  z-index:4;
+  background:rgba(15,25,18,.72);
+  border:1px solid rgba(240,200,105,.3);
+  padding:7px 13px;
+  border-radius:20px;
+  font-size:12.5px;
+  text-align:right;
+  min-height:14px;
+  transition:opacity .18s, transform .18s;
+}
+.message-banner.fade{ opacity:0; transform:translateY(-3px); }
+
+/* ---------- bidding panel ---------- */
+.bid-panel{
+  position:absolute;
+  bottom:26%;
+  left:50%;
+  transform:translate(-50%, 0);
+  z-index:10;
+  background:rgba(12,20,15,.92);
+  border:1px solid rgba(240,200,105,.4);
+  border-radius:10px;
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  box-shadow:0 14px 30px rgba(0,0,0,.5);
+  animation:panelIn .22s ease both;
+}
+@keyframes panelIn{ from{opacity:0; transform:translate(-50%,10px);} to{opacity:1; transform:translate(-50%,0);} }
+.bid-panel .prompt{ font-size:13px; color:#e9e2d0; }
+.bid-options{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+.bid-suit-btn{
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  background:var(--cream);
+  color:var(--ink);
+  border:2px solid transparent;
+  border-radius:8px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-family:var(--font-body);
+  font-size:11px;
+  transition:transform .12s, border-color .12s;
+}
+.bid-suit-btn svg{ width:22px; height:22px; }
+.bid-suit-btn:hover{ transform:translateY(-3px); border-color:var(--gold-bright); }
+.bid-pass-btn{
+  background:transparent;
+  border:1px solid rgba(240,200,105,.5);
+  color:var(--gold-bright);
+  padding:8px 18px;
+  border-radius:8px;
+  cursor:pointer;
+  font-family:var(--font-body);
+  font-size:12.5px;
+  transition:background .12s;
+}
+.bid-pass-btn:hover{ background:rgba(240,200,105,.12); }
+
+/* ---------- sidebar ---------- */
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.panel{
+  background:rgba(15,28,20,.55);
+  border:1px solid rgba(240,200,105,.18);
+  border-radius:10px;
+  padding:14px 16px;
+}
+.panel h2{
+  font-family:var(--font-display);
+  font-style:italic;
+  font-weight:600;
+  font-size:15px;
+  margin:0 0 10px;
+  color:var(--gold-bright);
+}
+.score-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  font-size:13px;
+  padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.score-row:last-child{ border-bottom:none; }
+.score-row .team-name{ opacity:.85; }
+.score-row .team-score{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:20px;
+  color:var(--gold-bright);
+  transition:transform .25s;
+}
+.score-row .team-score.bump{ transform:scale(1.3); }
+.score-sub{ font-size:10.5px; opacity:.55; margin-top:2px;}
+.target-note{ font-size:11px; opacity:.6; margin-top:8px; line-height:1.5; }
+
+.rules-list{ margin:0; padding-left:18px; font-size:12px; line-height:1.65; opacity:.85; }
+.rules-list li{ margin-bottom:6px; }
+
+/* ---------- overlays ---------- */
+.overlay{
+  position:fixed; inset:0;
+  background:rgba(6,12,8,.78);
+  backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center;
+  z-index:100;
+  padding:20px;
+  animation:fadeIn .25s ease both;
+}
+@keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+.overlay-card{
+  background:linear-gradient(165deg,#20402f,#132a1e);
+  border:1px solid rgba(240,200,105,.4);
+  border-radius:14px;
+  padding:30px 34px;
+  max-width:420px;
+  text-align:center;
+  box-shadow:0 30px 60px rgba(0,0,0,.6);
+  animation:popIn .3s cubic-bezier(.2,.8,.2,1.1) both;
+}
+@keyframes popIn{ from{opacity:0; transform:scale(.85) translateY(14px);} to{opacity:1; transform:none;} }
+.overlay-card h2{
+  font-family:var(--font-display);
+  font-style:italic;
+  font-size:26px;
+  margin:0 0 10px;
+  color:var(--gold-bright);
+}
+.overlay-card p{ font-size:13.5px; line-height:1.6; color:#e5ddc9; margin:0 0 18px;}
+.overlay-card .hand-tally{
+  display:flex; justify-content:center; gap:26px;
+  margin:14px 0 20px;
+}
+.overlay-card .hand-tally div{ font-size:12px; opacity:.8; }
+.overlay-card .hand-tally strong{
+  display:block; font-family:var(--font-display); font-size:24px; color:var(--gold-bright);
+}
+.overlay-btn{
+  background:var(--gold-bright);
+  color:var(--felt-2);
+  border:none;
+  padding:11px 26px;
+  border-radius:24px;
+  font-family:var(--font-body);
+  font-weight:600;
+  font-size:13.5px;
+  cursor:pointer;
+  transition:transform .12s, box-shadow .12s;
+}
+.overlay-btn:hover{ transform:translateY(-2px); box-shadow:0 8px 18px rgba(240,200,105,.3); }
+.overlay-btn:active{ transform:scale(.97); }
+
+.confetti{
+  position:fixed; top:-20px;
+  width:8px; height:14px;
+  z-index:99;
+  animation:fall linear forwards;
+  border-radius:1px;
+}
+@keyframes fall{
+  to{ transform:translateY(105vh) rotate(540deg); opacity:.9; }
+}
+
+.trick-flash{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  z-index:15;
+  background:rgba(20,32,23,.88);
+  border:1px solid rgba(240,200,105,.45);
+  padding:8px 16px;
+  border-radius:18px;
+  font-size:12.5px;
+  opacity:0;
+  transition:opacity .25s;
+  pointer-events:none;
+  white-space:nowrap;
+}
+.trick-flash.show{ opacity:1; }
+
+footer.credit{
+  max-width:1040px;
+  width:100%;
+  text-align:center;
+  font-size:10.5px;
+  color:rgba(230,225,210,.35);
+  margin-top:16px;
+}
+
+/* ---- realistic paper & shading ---- */
+.card{
+  background:
+    radial-gradient(ellipse at 28% 18%, #fffef9 0%, #f8f1de 55%, #e9dcbc 100%);
+  box-shadow:0 3px 6px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,255,255,.7), inset 0 0 16px rgba(150,115,55,.22);
+}
+.card::before{ border:1px solid rgba(20,15,8,.85); }
+.pip svg, .card .corner svg, .held-icon svg{ filter:drop-shadow(0 .7px .5px rgba(0,0,0,.35)); }
+.court-figure svg.figure-base{ filter:drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
+.card .corner{ color:#1d1710; text-shadow:0 .5px 0 rgba(255,255,255,.6); }
+
+@media (max-width:640px){
+  .hand-south .card{ margin-left:-40px; }
+  .hand-south .card:first-child{ margin-left:0; }
+  .zone-south{ bottom:0; }
+}
+
+/* ---- reves de la carta ---- */
+.card-back{
+  background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 44 64%22 preserveAspectRatio=%22none%22%3E%0A%3Cdefs%3E%0A%3Cpattern id=%22l%22 width=%225%22 height=%225%22 patternUnits=%22userSpaceOnUse%22 patternTransform=%22rotate%2845%29%22%3E%3Cpath d=%22M0 0H5M0 0V5%22 stroke=%22%23fff%22 stroke-opacity=%22.17%22 stroke-width=%22.45%22 fill=%22none%22/%3E%3C/pattern%3E%0A%3CradialGradient id=%22m%22 cx=%22.5%22 cy=%22.4%22 r=%22.7%22%3E%3Cstop offset=%220%22 stop-color=%22%232f4a8c%22/%3E%3Cstop offset=%221%22 stop-color=%22%2316244a%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%0A%3Crect width=%2244%22 height=%2264%22 rx=%224%22 fill=%22%231a2a55%22/%3E%0A%3Crect x=%224%22 y=%224%22 width=%2236%22 height=%2256%22 fill=%22url%28%23l%29%22/%3E%0A%3Crect x=%222%22 y=%222%22 width=%2240%22 height=%2260%22 rx=%222.5%22 fill=%22none%22 stroke=%22%23d9b45a%22 stroke-width=%22.8%22/%3E%0A%3Crect x=%224%22 y=%224%22 width=%2236%22 height=%2256%22 fill=%22none%22 stroke=%22%23d9b45a%22 stroke-width=%22.45%22/%3E%0A%3Cg fill=%22%23d9b45a%22%3E%3Ccircle cx=%227%22 cy=%227%22 r=%221.1%22/%3E%3Ccircle cx=%2237%22 cy=%227%22 r=%221.1%22/%3E%3Ccircle cx=%227%22 cy=%2257%22 r=%221.1%22/%3E%3Ccircle cx=%2237%22 cy=%2257%22 r=%221.1%22/%3E%3C/g%3E%0A%3Cpolygon points=%2222,13 35,32 22,51 9,32%22 fill=%22url%28%23m%29%22 stroke=%22%23d9b45a%22 stroke-width=%22.7%22/%3E%0A%3Cpolygon points=%2222,18 30,32 22,46 14,32%22 fill=%22none%22 stroke=%22%23d9b45a%22 stroke-width=%22.4%22 opacity=%22.8%22/%3E%0A%3Ccircle cx=%2222%22 cy=%2232%22 r=%225.6%22 fill=%22%23a8302a%22 stroke=%22%23d9b45a%22 stroke-width=%22.7%22/%3E%0A%3Ccircle cx=%2222%22 cy=%2232%22 r=%223.2%22 fill=%22none%22 stroke=%22%23f0d27a%22 stroke-width=%22.5%22/%3E%0A%3Cpath d=%22M22 28.6l.9 2.4 2.5.1-2 1.5.7 2.4-2.1-1.4-2.1 1.4.7-2.4-2-1.5 2.5-.1z%22 fill=%22%23f0d27a%22/%3E%0A%3Cpath d=%22M22 8v3M22 53v3M6 32h2M36 32h2%22 stroke=%22%23d9b45a%22 stroke-width=%22.6%22/%3E%0A%3C/svg%3E") center/100% 100% no-repeat, #1a2a55;
+  border:1px solid rgba(0,0,0,.55);
+  box-shadow:0 3px 6px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.card-back::after{ display:none; }
+
+/* ---- taula treballada ---- */
+.table-wrap::before{
+  content:"";
+  position:absolute; inset:-15px;
+  border-radius:50% / 38%;
+  background:
+    repeating-linear-gradient(97deg, rgba(0,0,0,.0) 0 5px, rgba(0,0,0,.13) 5px 6px, rgba(255,255,255,.04) 6px 11px),
+    linear-gradient(180deg,#8a5a34 0%,#5a3820 45%,#3a2313 100%);
+  box-shadow:0 22px 44px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,220,170,.25), inset 0 -3px 6px rgba(0,0,0,.5);
+}
+.table{
+  border:11px solid #26170e;
+  outline:1px solid rgba(240,200,105,.35);
+  outline-offset:-1px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22220%22 height=%22220%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.85%22 numOctaves=%222%22 stitchTiles=%22stitch%22/%3E%3CfeColorMatrix values=%220 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0%22/%3E%3C/filter%3E%3Crect width=%22220%22 height=%22220%22 filter=%22url%28%23n%29%22/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 50% 38%, #3d8a62 0%, #25684a 28%, #1b4a35 62%, #0e2d20 100%);
+  background-blend-mode:soft-light, normal;
+  box-shadow:inset 0 0 70px rgba(0,0,0,.6), inset 0 0 0 2px rgba(0,0,0,.35), 0 0 0 2px rgba(0,0,0,.4);
+}
+.table::before{
+  inset:12px;
+  border:1.5px dashed rgba(240,200,105,.32);
+}
+.table::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:min(300px,54%); aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 200 200%22%3E%3Cg fill=%22none%22 stroke=%22%23f0c869%22 stroke-width=%221%22 opacity=%22.5%22%3E%3Ccircle cx=%22100%22 cy=%22100%22 r=%2292%22/%3E%3Ccircle cx=%22100%22 cy=%22100%22 r=%2284%22 stroke-dasharray=%222 4%22/%3E%3Ccircle cx=%22100%22 cy=%22100%22 r=%2260%22/%3E%3Cpath d=%22M100 8L112 88 192 100 112 112 100 192 88 112 8 100 88 88Z%22/%3E%3Cpath d=%22M35 35L92 92M165 35L108 92M35 165L92 108M165 165L108 108%22/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;
+  opacity:.28;
+  pointer-events:none;
+  z-index:0;
+}
+
+.message-banner{ max-width:34%; }
+.hand-vert .card-back{ margin-top:-50px; }
+@media (max-width:640px){ .message-banner{ max-width:60%; top:auto; bottom:42%; right:50%; transform:translateX(50%); text-align:center; } .message-banner.fade{ transform:translateX(50%) translateY(-3px); } }
+
+.game-shell{ grid-template-columns:minmax(0,1fr) 230px; }
+.game-shell > *{ min-width:0; }
+@media (max-width:820px){
+  .game-shell{ grid-template-columns:minmax(0,1fr); }
+  .table-wrap{ margin:8px 0 14px; }
+}
+@media (max-width:640px){
+  .table-wrap{ aspect-ratio:auto; height:500px; min-height:0; }
+  .card{ --w:58px; --h:84px; }
+  .hand-south .card{ margin-left:-34px; }
+  .hand-south .card:first-child{ margin-left:0; }
+  .card .corner{ font-size:14px; }
+  .card .corner svg{ width:11px; height:11px; }
+  .pip{ width:12px; height:12px; }
+  .pip.big{ width:23px; height:23px; }
+  .card-back{ --w:38px; --h:56px; }
+  .hand-vert .card-back{ margin-top:-42px; }
+  .hand.hand-north .card-back{ margin-left:-26px; }
+  .center-slots{ width:190px; height:170px; }
+  .slot{ width:56px; height:82px; }
+  .zone-west{ left:0; } .zone-east{ right:0; }
+  .player-tag .role{ display:none; }
+  .bid-panel{ bottom:20%; max-width:94%; }
+}
+
+@media (max-width:640px){
+  .table-wrap{ margin-bottom:60px; }
+  .message-banner{ top:calc(100% + 24px); bottom:auto; left:50%; right:auto; max-width:92%; transform:translateX(-50%); text-align:center; }
+  .message-banner.fade{ transform:translateX(-50%) translateY(-3px); }
+  .trump-badge{ top:6px; left:50%; transform:translateX(-50%); z-index:5; }
+  .trump-badge.reveal{ animation:none; }
+  .zone-north{ top:11%; }
+  .zone-west, .zone-east{ flex-direction:column; }
+  .zone-west .player-tag, .zone-east .player-tag{ order:-1; }
+}
+
+.player-tag .badges{ display:inline-flex; align-items:center; gap:3px; }
+.badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:18px; padding:0 5px;
+  border-radius:9px; font-size:10px; font-weight:700; line-height:1;
+  border:1px solid transparent; margin-left:2px;
+  animation:badgePop .45s cubic-bezier(.3,1.5,.4,1) both;
+}
+.badge svg{ width:12px; height:12px; display:block; }
+@keyframes badgePop{ from{ transform:scale(.2); opacity:0; } to{ transform:scale(1); opacity:1; } }
+.b-trump{ background:#f6efe1; color:#241c14; border-color:#d9b45a; padding:0 3px; }
+.b-contra{ background:#a8342c; color:#fff; border-color:#e08a83; }
+.b-recontra{ background:#d9822b; color:#241c14; border-color:#f0c869; }
+.b-sant{ background:#5b3a8c; color:#fff; border-color:#b79be0; }
+
+.stats-sub{ font-size:11px; opacity:.6; margin:12px 0 6px; text-transform:uppercase; letter-spacing:.6px; }
+.stats-sub:first-child{ margin-top:0; }
+.stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.stat{ background:rgba(255,255,255,.04); border:1px solid rgba(240,200,105,.12); border-radius:8px; padding:7px 9px; }
+.stat strong{ display:block; font-family:var(--font-display); font-size:18px; color:var(--gold-bright); line-height:1.1; }
+.stat span{ font-size:10.5px; opacity:.7; }
+.hist{ width:100%; border-collapse:collapse; font-size:11px; }
+.hist th{ text-align:left; font-weight:500; opacity:.55; padding:3px 3px; border-bottom:1px solid rgba(255,255,255,.12); }
+.hist td{ padding:4px 3px; border-bottom:1px solid rgba(255,255,255,.06); vertical-align:middle; }
+.hist svg{ width:13px; height:13px; vertical-align:-2px; }
+.hist .win{ color:#a9d98a; font-weight:600; }
+.hist .lose{ color:#e08a83; font-weight:600; }
+.hist-empty{ font-size:11.5px; opacity:.55; }
+.stats-reset{ margin-top:12px; background:transparent; border:1px solid rgba(255,255,255,.2); color:#b9c2bb; font-family:var(--font-body); font-size:11px; padding:5px 10px; border-radius:14px; cursor:pointer; }
+.stats-reset:hover{ background:rgba(255,255,255,.06); }
+
+.panel h2{ margin:0 0 10px; transition:margin .25s ease; }
+.panel.collapsed h2{ margin-bottom:0; }
+.panel-head{
+  all:unset; box-sizing:border-box; width:100%;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  cursor:pointer; color:inherit;
+}
+.panel-head:focus-visible{ outline:2px solid var(--gold-bright); outline-offset:3px; border-radius:4px; }
+.panel-head .chev{
+  width:18px; height:18px; flex:none; opacity:.75;
+  transition:transform .25s ease;
+}
+.panel.collapsed .panel-head .chev{ transform:rotate(-90deg); }
+.panel-head:hover .chev{ opacity:1; }
+.panel-body{
+  display:grid; grid-template-rows:1fr;
+  transition:grid-template-rows .28s ease, opacity .2s ease;
+}
+.panel-inner{ overflow:hidden; min-height:0; }
+.panel.collapsed .panel-body{ grid-template-rows:0fr; opacity:0; }
+
+/* =================== PHONE LAYOUT =================== */
+body{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; padding-bottom:max(30px, env(safe-area-inset-bottom)); }
+.assist-toggle, .new-game-btn{ position:relative; }
+.assist-toggle .ico, .new-game-btn .ico{ display:none; }
+.new-game-btn{ display:inline-flex; align-items:center; gap:7px; }
+.hand-south .card.selected{
+  transform:translateY(-14px) scale(1.06);
+  box-shadow:0 0 0 2px var(--gold-bright), 0 10px 18px rgba(0,0,0,.5);
+  z-index:6;
+  animation:none;
+}
+@keyframes panelInM{ from{ opacity:0; transform:translate(-50%,-44%); } to{ opacity:1; transform:translate(-50%,-50%); } }
+
+/* ---------- phone, portrait ---------- */
+@media (max-width:640px){
+  body{ padding:6px 8px max(26px, env(safe-area-inset-bottom)); }
+  .masthead{ flex-wrap:nowrap; align-items:center; gap:8px; padding:0 2px 8px; margin-bottom:6px; }
+  .masthead h1{ font-size:26px; }
+  .masthead .tagline{ display:none; }
+  .masthead-actions{ flex-wrap:nowrap; gap:6px; }
+  .assist-toggle, .new-game-btn{ width:40px; height:40px; padding:0; justify-content:center; border-radius:50%; gap:0; }
+  .assist-toggle .dot, .assist-toggle .txt, .new-game-btn .txt{ display:none; }
+  .assist-toggle .ico, .new-game-btn .ico{ display:block; width:20px; height:20px; }
+  .assist-toggle[aria-pressed="false"]::after{ content:""; position:absolute; width:24px; height:2px; background:currentColor; transform:rotate(-45deg); border-radius:1px; }
+
+  .table-wrap{ aspect-ratio:auto; min-height:0; height:clamp(440px, calc(100dvh - 142px), 660px); margin:6px 0 50px; }
+  .table-wrap::before{ inset:-8px; border-radius:42px; }
+  .table, .table::before{ border-radius:34px; }
+  .table{ border-width:8px; }
+  .table::before{ inset:7px; }
+  .table::after{ width:60%; }
+
+  .trump-badge{ top:8px; left:50%; transform:translateX(-50%); animation:none; white-space:nowrap; }
+  .message-banner{ top:calc(100% + 18px); max-width:94%; font-size:13px; }
+  .zone-north{ top:46px; }
+  .zone-west, .zone-east{ top:41%; flex-direction:column; }
+  .zone-west{ left:6px; } .zone-east{ right:6px; }
+  .zone-west .player-tag, .zone-east .player-tag{ order:-1; }
+  .player-tag .role{ display:none; }
+  .center-slots{ top:41%; width:176px; height:168px; }
+  .slot{ width:54px; height:79px; }
+  .card-back{ --w:36px; --h:52px; }
+  .hand-vert .card-back{ margin-top:-38px; }
+  .hand.hand-north .card-back{ margin-left:-24px; }
+
+  .zone-south{ bottom:6px; width:100%; }
+  .hand-south{
+    --cw:min(56px, calc((100vw - 58px) / 6));
+    display:flex; flex-wrap:wrap; justify-content:center; gap:5px 3px;
+    max-width:calc(6 * (var(--cw) + 3px));
+  }
+  .hand-south .card{ --w:var(--cw); --h:calc(var(--cw) * 1.46); margin-left:0; }
+  .hand-south .card:first-child{ margin-left:0; }
+  .hand-south .card.playable:hover, .hand-south .card.clickable:hover{ transform:none; box-shadow:0 3px 6px rgba(0,0,0,.35); }
+  .hand-south .card.selected{ transform:translateY(-8px) scale(1.05); }
+  .card .corner{ font-size:13px; }
+  .card .corner svg{ width:10px; height:10px; }
+  .pip{ width:10px; height:10px; }
+  .pip.big{ width:21px; height:21px; }
+  .pip-field{ top:17px; bottom:17px; left:5px; right:5px; }
+  .court-figure{ inset:12px 3px; }
+  .held-icon{ width:12px; height:12px; }
+
+  .bid-panel{ top:42%; bottom:auto; transform:translate(-50%,-50%); animation:panelInM .22s ease both; max-width:96%; padding:12px; }
+  .bid-options{ gap:6px; }
+  .bid-suit-btn{ padding:7px 9px; }
+  .overlay-card{ padding:22px 20px; }
+  .game-shell{ gap:12px; }
+}
+
+/* ---------- phone, landscape ---------- */
+@media (orientation:landscape) and (max-height:520px){
+  body{ padding:4px 10px max(16px, env(safe-area-inset-bottom)); }
+  .masthead{ flex-wrap:nowrap; align-items:center; gap:8px; padding:0 2px 4px; margin-bottom:4px; border-bottom:none; }
+  .masthead h1{ font-size:22px; }
+  .masthead .tagline{ display:none; }
+  .masthead-actions{ flex-wrap:nowrap; gap:6px; }
+  .assist-toggle, .new-game-btn{ width:34px; height:34px; padding:0; justify-content:center; border-radius:50%; gap:0; }
+  .assist-toggle .dot, .assist-toggle .txt, .new-game-btn .txt{ display:none; }
+  .assist-toggle .ico, .new-game-btn .ico{ display:block; width:18px; height:18px; }
+  .assist-toggle[aria-pressed="false"]::after{ content:""; position:absolute; width:22px; height:2px; background:currentColor; transform:rotate(-45deg); border-radius:1px; }
+  .game-shell{ grid-template-columns:minmax(0,1fr); }
+
+  .table-wrap{ aspect-ratio:auto; min-height:0; height:calc(100dvh - 58px); margin:4px 0 14px; }
+  .table-wrap::before{ inset:-8px; border-radius:46px; }
+  .table, .table::before{ border-radius:38px; }
+  .table{ border-width:8px; }
+  .table::before{ inset:7px; }
+  .table::after{ width:min(220px,50%); }
+
+  .trump-badge{ top:8px; left:18px; transform:none; animation:none; }
+  .message-banner{ top:8px; right:auto; left:50%; transform:translateX(-50%); max-width:42%; font-size:12px; text-align:center; z-index:6; }
+  .message-banner.fade{ transform:translateX(-50%) translateY(-3px); }
+  .zone-north{ top:40px; }
+  .zone-west, .zone-east{ top:50%; flex-direction:column; }
+  .zone-west{ left:10px; } .zone-east{ right:10px; }
+  .zone-west .player-tag, .zone-east .player-tag{ order:-1; }
+  .player-tag .role{ display:none; }
+  .player-tag{ padding:2px 8px 2px 5px; font-size:11.5px; }
+  .center-slots{ top:50%; width:168px; height:132px; }
+  .slot{ width:44px; height:64px; }
+  .card{ --w:46px; --h:67px; }
+  .card-back{ --w:30px; --h:44px; }
+  .hand-vert .card-back{ margin-top:-30px; }
+  .hand.hand-north .card-back{ margin-left:-18px; }
+  .zone-south{ bottom:4px; }
+  .hand-south .card{ margin-left:-17px; }
+  .hand-south .card:first-child{ margin-left:0; }
+  .hand-south .card.playable:hover, .hand-south .card.clickable:hover{ transform:translateY(-6px); }
+  .hand-south .card.selected{ transform:translateY(-10px) scale(1.05); }
+  .card .corner{ font-size:12px; }
+  .card .corner svg{ width:9px; height:9px; }
+  .pip{ width:9px; height:9px; }
+  .pip.big{ width:19px; height:19px; }
+  .pip-field{ top:15px; bottom:15px; left:4px; right:4px; }
+  .court-figure{ inset:11px 3px; }
+  .held-icon{ width:11px; height:11px; }
+  .bid-panel{ top:50%; bottom:auto; transform:translate(-50%,-50%); animation:panelInM .22s ease both; padding:10px 14px; }
+  .bid-panel .prompt{ font-size:12px; }
+  .bid-suit-btn{ padding:5px 8px; }
+  .overlay-card{ padding:16px 22px; }
+  .overlay-card h2{ font-size:20px; margin-bottom:6px; }
+  .overlay-card .hand-tally{ margin:6px 0 10px; }
+}
+
+/* ---------- landscape refinements ---------- */
+@media (orientation:landscape) and (max-height:520px){
+  .zone-north{ top:46px; flex-direction:row; align-items:center; gap:8px; }
+  .zone-south{ flex-direction:row; align-items:flex-end; gap:10px; bottom:6px; }
+  .zone-south .player-tag{ order:-1; margin-bottom:4px; }
+  .zone-west, .zone-east{ top:57%; }
+  .center-slots{ top:51%; width:176px; height:164px; }
+  .slot{ width:46px; height:67px; }
+  .card{ --w:52px; --h:76px; }
+  .hand-south .card{ margin-left:-20px; }
+  .hand-south .card:first-child{ margin-left:0; }
+  .card .corner{ font-size:13px; }
+  .pip{ width:10px; height:10px; }
+  .pip.big{ width:21px; height:21px; }
+  .pip-field{ top:16px; bottom:16px; }
+}
+
+@media (max-width:640px){
+  .zone-west, .zone-east{ top:45%; }
+  .center-slots{ top:42%; }
+}
+@media (orientation:landscape) and (max-height:520px){
+  .zone-north, .zone-south{ flex-direction:row; }
+  .zone-north .player-tag, .zone-south .player-tag{ position:absolute; right:100%; margin:0 10px 0 0; order:0; }
+  .zone-north .player-tag{ top:50%; transform:translateY(-50%); }
+  .zone-south .player-tag{ bottom:4px; }
+  .center-slots{ top:52%; width:176px; height:128px; }
+  .slot{ width:42px; height:61px; }
+}
+
+@media (orientation:landscape) and (max-height:520px){
+  .zone-south .player-tag{ right:auto; left:0; bottom:100%; margin:0 0 5px 0; }
+}
+
+/* ---- detailed court figures ---- */
+.court-figure{ inset:12px 2px; }
+.court-art{ position:relative; height:100%; aspect-ratio:100/130; max-width:100%; }
+.court-art svg.figure-base{ width:100%; height:100%; max-width:none; filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.court-art .held-icon{
+  position:absolute; right:auto;
+  width:25%; height:auto; aspect-ratio:1;
+  left:calc(var(--hx) * 1% - 12.5%);
+  top:calc(var(--hy) * 1% - 12.5%);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));
+}
+.court-art .held-icon svg{ width:100%; height:100%; }
+@media (max-width:640px){ .court-figure{ inset:11px 1px; } }
+@media (orientation:landscape) and (max-height:520px){ .court-figure{ inset:10px 1px; } }
+
+/* corner index on one line (number + suit) so it never covers the figures */
+.card .corner{ flex-direction:row; align-items:center; justify-content:center; gap:3px; }
+.court-figure{ inset:16px 2px; }
+@media (max-width:640px){ .court-figure{ inset:14px 1px; } .card .corner{ gap:2px; } }
+@media (orientation:landscape) and (max-height:520px){ .court-figure{ inset:13px 1px; } }
+
+.new-game-btn:disabled{ opacity:.38; cursor:not-allowed; }
+.new-game-btn:disabled:hover{ background:transparent; }
+.lt-card{ max-width:460px; }
+.lt-sub{ margin:0 0 4px !important; font-size:13px; }
+.lt-grid{
+  display:grid;
+  grid-template-columns:auto auto auto;
+  grid-template-areas:". n ." "w c e" ". s .";
+  gap:8px 14px; align-items:center; justify-items:center;
+  margin:12px 0 16px;
+}
+.lt-cell{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+.lt-name{ font-size:11px; opacity:.8; white-space:nowrap; }
+.lt-cell .card{ --w:64px !important; --h:94px !important; }
+.lt-cell.win .card{ box-shadow:0 0 0 3px var(--gold-bright), 0 0 18px 3px rgba(240,200,105,.55); }
+.lt-chip{ font-size:10px; font-weight:700; color:var(--felt-2); background:var(--gold-bright); padding:1px 8px; border-radius:9px; }
+.lt-mid{ font-size:11px; opacity:.7; text-align:center; max-width:90px; }
+@media (max-width:640px){ .lt-grid{ gap:6px 8px; } .lt-cell .card{ --w:56px !important; --h:82px !important; } .lt-card{ padding:18px 14px; } }
+@media (orientation:landscape) and (max-height:520px){
+  .lt-card{ max-width:620px; padding:12px 20px; }
+  .lt-grid{ grid-template-columns:auto auto auto auto; grid-template-areas:"w n c e" ". s . ."; gap:6px 10px; margin:6px 0 10px; }
+  .lt-cell .card{ --w:46px !important; --h:67px !important; }
+}
+
+/* --- touch: the first tap lifts the card (must beat the sticky :hover rules of the phone layout) --- */
+.hand-south .card{ transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease, filter .15s ease; }
+.hand-south .card.selected,
+.hand-south .card.selected:hover,
+.hand-south .card.playable.selected,
+.hand-south .card.playable.selected:hover,
+.hand-south .card.clickable.selected,
+.hand-south .card.clickable.selected:hover{
+  transform:translateY(-16px) scale(1.06) !important;
+  box-shadow:0 0 0 3px var(--gold-bright), 0 12px 20px rgba(0,0,0,.55) !important;
+  z-index:8;
+  animation:none;
+}
+
+/* ---- vintage printed-card finish ---- */
+.card{
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22180%22 height=%22180%22%3E%3Cfilter id=%22n%22 x=%220%22 y=%220%22 width=%22100%25%22 height=%22100%25%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.55%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3CfeColorMatrix values=%220 0 0 0 .45  0 0 0 0 .33  0 0 0 0 .18  0 0 0 .55 -.12%22/%3E%3C/filter%3E%3Crect width=%22180%22 height=%22180%22 filter=%22url%28%23n%29%22/%3E%3C/svg%3E"),
+    radial-gradient(circle at 78% 12%, rgba(150,105,45,.20) 0, rgba(150,105,45,0) 22%),
+    radial-gradient(circle at 14% 84%, rgba(140,95,40,.18) 0, rgba(140,95,40,0) 26%),
+    radial-gradient(ellipse at 30% 20%, #fbf3dd 0%, #f1e4c2 62%, #e2d0a4 100%);
+  background-blend-mode:multiply, normal, normal, normal;
+  box-shadow:0 3px 6px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,255,255,.55), inset 0 0 18px rgba(130,95,40,.32);
+}
+.card::before{
+  border:1px solid rgba(40,28,15,.75);
+  border-top-style:dashed; border-bottom-style:dashed;
+}
+.card .corner{ align-self:flex-start; justify-content:flex-start; margin-left:3px; font-weight:600; color:#2a1d12; }
+.card .corner.bottom{ align-self:flex-end; margin-left:0; margin-right:3px; }
+@media (max-width:640px){ .card .corner{ margin-left:2px; } .card .corner.bottom{ margin-right:2px; } }
+
+.overlay-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.overlay-btn.secondary{
+  background:transparent; color:var(--gold-bright);
+  border:1px solid rgba(240,200,105,.6);
+}
+.overlay-btn.secondary:hover{ background:rgba(240,200,105,.12); box-shadow:none; }
+@media (max-width:420px){ .overlay-actions{ flex-direction:column; } .overlay-actions .overlay-btn{ width:100%; } }
+
+/* ---- card back: red ornamental design (stone border, double frame, rosette) ---- */
+.card-back{
+  background:url(data:image/png;base64,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) center/100% 100% no-repeat, #fff;
+  border:1px solid rgba(0,0,0,.45);
+  box-shadow:0 3px 6px rgba(0,0,0,.4);
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <radialGradient id="g-gold" cx=".35" cy=".3" r=".85">
+      <stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#e8bd3d"/><stop offset="1" stop-color="#a8741a"/>
+    </radialGradient>
+    <linearGradient id="g-goldlin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f9de74"/><stop offset="1" stop-color="#b9861f"/>
+    </linearGradient>
+    <linearGradient id="g-red" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a1c16"/><stop offset=".4" stop-color="#d4473b"/><stop offset="1" stop-color="#8f241d"/>
+    </linearGradient>
+    <linearGradient id="g-blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#34609f"/><stop offset=".45" stop-color="#9dbfe8"/><stop offset="1" stop-color="#34609f"/>
+    </linearGradient>
+    <linearGradient id="g-green" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2b5521"/><stop offset=".45" stop-color="#71a854"/><stop offset="1" stop-color="#2f5d25"/>
+    </linearGradient>
+    <linearGradient id="g-maroon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#561410"/><stop offset=".45" stop-color="#bb4538"/><stop offset="1" stop-color="#5b1712"/>
+    </linearGradient>
+    <radialGradient id="g-skin" cx=".4" cy=".35" r=".8">
+      <stop offset="0" stop-color="#fbe2c3"/><stop offset="1" stop-color="#d49d6c"/>
+    </radialGradient>
+    <linearGradient id="g-horse" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cf9559"/><stop offset="1" stop-color="#85552a"/>
+    </linearGradient>
+    <linearGradient id="g-blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6a95d3"/><stop offset="1" stop-color="#2c5290"/>
+    </linearGradient>
+    <linearGradient id="g-cloth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e04b3f"/><stop offset="1" stop-color="#9e2820"/>
+    </linearGradient>
+
+    <symbol id="icon-oros" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="14.2" fill="url(#g-gold)" stroke="#7a4f0e" stroke-width="1.2"/>
+      <circle cx="16" cy="16" r="13" fill="none" stroke="#7a4f0e" stroke-width=".9" stroke-dasharray="1.2 1.2" opacity=".65"/>
+      <circle cx="16" cy="16" r="10.4" fill="none" stroke="#8a5a12" stroke-width=".9"/>
+      <g stroke="#8a5a12" stroke-width="1.3" stroke-linecap="round">
+        <path d="M21.5 16h3M19.9 12.1l2.1-2.1M16 10.5v-3M12.1 12.1L10 10M10.5 16h-3M12.1 19.9L10 22M16 21.5v3M19.9 19.9l2.1 2.1"/>
+      </g>
+      <circle cx="16" cy="16" r="4.4" fill="url(#g-gold)" stroke="#8a5a12" stroke-width=".9"/>
+      <path d="M5.4 12.5A11.2 11.2 0 0 1 12.5 5.4" fill="none" stroke="#fff6c8" stroke-width="1.5" stroke-linecap="round" opacity=".65"/>
+    </symbol>
+    <symbol id="icon-copes" viewBox="0 0 32 32">
+      <ellipse cx="16" cy="27.6" rx="7.8" ry="2.4" fill="#3d78b8" stroke="#1f3f6a" stroke-width=".6"/>
+      <ellipse cx="16" cy="27" rx="5.6" ry="1.3" fill="#6fa3da" opacity=".6"/>
+      <path d="M14.4 17.5h3.2l1 8.6h-5.2z" fill="url(#g-goldlin)" stroke="#7a4f0e" stroke-width=".6"/>
+      <ellipse cx="16" cy="21.4" rx="3" ry="1.4" fill="url(#g-goldlin)" stroke="#7a4f0e" stroke-width=".5"/>
+      <clipPath id="cupclip"><path d="M6.6 4.6h18.8c0 8.6-3.8 13.6-9.4 13.6S6.6 13.2 6.6 4.6z"/></clipPath>
+      <path d="M6.6 4.6h18.8c0 8.6-3.8 13.6-9.4 13.6S6.6 13.2 6.6 4.6z" fill="url(#g-red)" stroke="#5a1511" stroke-width=".9"/>
+      <g clip-path="url(#cupclip)" stroke="#f3cd3f" stroke-width=".75" opacity=".9" fill="none">
+        <path d="M6 5l13 13M10 5l13 13M14 5l13 13M18 5l9 9M2 5l13 13"/>
+        <path d="M26 5L13 18M22 5L9 18M18 5L5 18M14 5L5 14M30 5L17 18"/>
+      </g>
+      <path d="M6.2 3.4h19.6l-.5 2.6H6.7z" fill="url(#g-goldlin)" stroke="#7a4f0e" stroke-width=".6"/>
+    </symbol>
+    <symbol id="icon-espases" viewBox="0 0 32 32">
+      <path d="M16 1.6L18.8 19.6 16 21.6 13.2 19.6Z" fill="url(#g-blade)" stroke="#1f3f6a" stroke-width=".7" stroke-linejoin="round"/>
+      <path d="M16 4V19" stroke="#dbe8f8" stroke-width=".8" opacity=".75"/>
+      <path d="M6.6 21.4h18.8l-1.5 2.3H8.1z" fill="url(#g-goldlin)" stroke="#7a4f0e" stroke-width=".6" stroke-linejoin="round"/>
+      <circle cx="6.6" cy="22.5" r="1.5" fill="url(#g-goldlin)" stroke="#7a4f0e" stroke-width=".5"/>
+      <circle cx="25.4" cy="22.5" r="1.5" fill="url(#g-goldlin)" stroke="#7a4f0e" stroke-width=".5"/>
+      <rect x="14.4" y="23.6" width="3.2" height="5.2" rx=".7" fill="#c0392b" stroke="#4e1511" stroke-width=".4"/>
+      <path d="M14.4 24.6l3.2 1.2M14.4 26.2l3.2 1.2M14.4 27.8l3.2 1" stroke="#f0cf4a" stroke-width=".7"/>
+      <circle cx="16" cy="29.9" r="2" fill="url(#g-gold)" stroke="#7a4f0e" stroke-width=".6"/>
+    </symbol>
+    <symbol id="icon-bastos-a" viewBox="0 0 32 32">
+      <path d="M16 1.6c2.6 0 3.8 2.6 3 5.6-1 3.6-1.6 5.6-1.6 9 0 3.2.9 5.1 1.9 8.7 1 3.6-.6 6.5-3.3 6.5s-4.3-2.9-3.3-6.5c1-3.6 1.9-5.5 1.9-8.7 0-3.4-.6-5.4-1.6-9-.8-3 .4-5.6 3-5.6z" fill="url(#g-green)" stroke="#243f1b" stroke-width="1"/>
+      <path d="M16 2.4c1.5 3.6 1.9 6 1.4 9.4-.4 3.2-1.1 5-1.1 8.6 0 3.5.9 5.4 1.8 8.9" fill="none" stroke="#f0cf4a" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M14.1 4.2c-.7 3-.9 5-.8 8" fill="none" stroke="#c6e6a6" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+      <ellipse cx="16" cy="4" rx="3" ry="2.3" fill="#f0cf4a" stroke="#8a6212" stroke-width=".6"/>
+      <ellipse cx="14.4" cy="12.6" rx="1.4" ry="2.4" fill="#1d3416" opacity=".55"/>
+      <ellipse cx="17.4" cy="22" rx="1.4" ry="2.4" fill="#1d3416" opacity=".55"/>
+    </symbol>
+    <symbol id="icon-bastos-b" viewBox="0 0 32 32">
+      <path d="M16 1.6c2.6 0 3.8 2.6 3 5.6-1 3.6-1.6 5.6-1.6 9 0 3.2.9 5.1 1.9 8.7 1 3.6-.6 6.5-3.3 6.5s-4.3-2.9-3.3-6.5c1-3.6 1.9-5.5 1.9-8.7 0-3.4-.6-5.4-1.6-9-.8-3 .4-5.6 3-5.6z" fill="url(#g-maroon)" stroke="#3f0f0b" stroke-width="1"/>
+      <path d="M16 2.4c1.5 3.6 1.9 6 1.4 9.4-.4 3.2-1.1 5-1.1 8.6 0 3.5.9 5.4 1.8 8.9" fill="none" stroke="#f0cf4a" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M14.1 4.2c-.7 3-.9 5-.8 8" fill="none" stroke="#f0b5a8" stroke-width="1" stroke-linecap="round" opacity=".6"/>
+      <ellipse cx="16" cy="4" rx="3" ry="2.3" fill="#f0cf4a" stroke="#8a6212" stroke-width=".6"/>
+      <ellipse cx="14.4" cy="12.6" rx="1.4" ry="2.4" fill="#3a0e0a" opacity=".55"/>
+      <ellipse cx="17.4" cy="22" rx="1.4" ry="2.4" fill="#3a0e0a" opacity=".55"/>
+    </symbol>
+
+      <symbol id="icon-sota" viewBox="0 0 100 130">
+      <ellipse cx="50" cy="124.500" rx="26" ry="3.500" fill="#000" opacity=".22"/>
+      <g stroke="#2a1a10" stroke-width=".9" stroke-linejoin="round" stroke-linecap="round">
+        <!-- grass -->
+        <path d="M20 124l-2-5 4 3 1-5 2 6 3-4-1 6zM76 124l-1-5 3 3 2-4 1 6 3-3-1 5z" fill="#4a8a34" stroke-width=".6"/>
+        <!-- cape (behind) -->
+        <path d="M60 36Q90 48 86 100Q82 86 70 76Q74 56 62 46Z" fill="url(#g-green)"/>
+        <path d="M86 100Q82 86 70 76" fill="none" stroke="#f0cf4a" stroke-width="2"/>
+        <path d="M66 52Q80 62 80 90M72 48Q86 66 83 94" fill="none" stroke="#1d3416" stroke-width=".6" opacity=".7"/>
+        <!-- left leg (red hose) -->
+        <path d="M37 72L48 72L47.500 112L39 112Z" fill="#c4362c"/>
+        <path d="M41 74L41 110" stroke="#7a1c16" stroke-width=".6" fill="none"/>
+        <!-- right leg (green hose) -->
+        <path d="M52 72L63 72L61.500 112L53 112Z" fill="#3f8f3f"/>
+        <path d="M58 74L58 110" stroke="#235a23" stroke-width=".6" fill="none"/>
+        <!-- garters -->
+        <path d="M38.500 96h9.500M52.500 96h9.500" stroke="#f0cf4a" stroke-width="2" fill="none"/>
+        <!-- shoes -->
+        <path d="M37 112L48 112L48 119Q38 121 28 121Q29 114 37 112Z" fill="#4a2d14"/>
+        <path d="M52 112L62.500 112Q74 115 74 121Q62 121 52 119Z" fill="#4a2d14"/>
+        <path d="M38 116h9M54 116h10" stroke="#f0cf4a" stroke-width=".8" fill="none"/>
+        <!-- trunk hose (slashed) -->
+        <path d="M33 62Q50 72 67 62L65 80Q50 88 35 80Z" fill="#e3b93b"/>
+        <path d="M40 66L38 82M45 68L44 85M50 69V87M55 68L56 85M60 66L62 82" fill="none" stroke="#b8342c" stroke-width="2.200"/>
+        <!-- sword -->
+        <path d="M31 70L24 92" stroke="#c9d3df" stroke-width="2.400" fill="none"/>
+        <path d="M27 68L36 74" stroke="#e3b93b" stroke-width="2.200" fill="none"/>
+        <!-- doublet -->
+        <path d="M36 35Q50 30 64 35L66 66Q50 75 34 66Z" fill="url(#g-blue)"/>
+        <path d="M50 38V70" stroke="#1f3a68" stroke-width=".8" fill="none"/>
+        <g fill="#f0cf4a" stroke-width=".4"><circle cx="50" cy="42" r="1.200"/><circle cx="50" cy="48" r="1.200"/><circle cx="50" cy="54" r="1.200"/><circle cx="50" cy="60" r="1.200"/></g>
+        <path d="M38 44L47 50M38 52L47 58M62 44L53 50M62 52L53 58" fill="none" stroke="#f0cf4a" stroke-width=".9"/>
+        <path d="M34 65Q50 74 66 65L66 69Q50 78 34 69Z" fill="url(#g-goldlin)"/>
+        <!-- left arm (hand on sword) -->
+        <path d="M32 37Q20 40 22 56Q30 56 36 46Z" fill="#c4362c"/>
+        <path d="M24 40Q22 46 24 54M28 38Q26 46 28 55" stroke="#f0cf4a" stroke-width="1.500" fill="none"/>
+        <path d="M23 54Q22 62 28 68L33 66Q29 60 31 54Z" fill="url(#g-blue)"/>
+        <circle cx="28.500" cy="69" r="3.200" fill="url(#g-skin)"/>
+        <!-- right arm (raised) -->
+        <path d="M68 37Q80 38 80 52Q72 54 64 46Z" fill="#e3a52a"/>
+        <path d="M70 38Q73 46 72 52M75 39Q78 46 77 51" stroke="#b8342c" stroke-width="1.600" fill="none"/>
+        <path d="M76 46Q86 36 84 26L90 25Q94 40 82 54Z" fill="url(#g-blue)"/>
+        <circle cx="87.500" cy="23" r="3.800" fill="url(#g-skin)"/>
+        <!-- ruff -->
+        <path d="M40 34Q50 40 60 34Q58 30 50 31Q42 30 40 34Z" fill="#f8f2e2"/>
+        <g fill="#f8f2e2" stroke-width=".5"><circle cx="41" cy="34" r="2"/><circle cx="45.500" cy="36" r="2"/><circle cx="50" cy="37" r="2"/><circle cx="54.500" cy="36" r="2"/><circle cx="59" cy="34" r="2"/></g>
+        <!-- neck + head -->
+        <path d="M45 27h10v7Q50 38 45 34z" fill="url(#g-skin)"/>
+        <ellipse cx="50" cy="20" rx="8.500" ry="10" fill="url(#g-skin)"/>
+        <ellipse cx="41.600" cy="21" rx="1.500" ry="2.500" fill="#dba578"/>
+        <ellipse cx="58.400" cy="21" rx="1.500" ry="2.500" fill="#dba578"/>
+        <path d="M41.500 17Q41 9 50 9.500Q59 9 58.500 17Q56 12.500 50 13Q44 12.500 41.500 17Z" fill="#7a4a1c"/>
+        <path d="M41 19Q38 26 41.500 30Q42 25 43 21ZM59 19Q62 26 58.500 30Q58 25 57 21Z" fill="#7a4a1c"/>
+        <path d="M46 16.500Q48.500 15.500 49.500 17M50.500 17Q51.500 15.500 54 16.500" fill="none" stroke="#5a3a18" stroke-width=".8"/>
+        <ellipse cx="46.500" cy="19" rx="2" ry="1.200" fill="#fff" stroke-width=".4"/>
+        <ellipse cx="53.500" cy="19" rx="2" ry="1.200" fill="#fff" stroke-width=".4"/>
+        <circle cx="46.600" cy="19" r=".9" fill="#2b1a0c" stroke="none"/>
+        <circle cx="53.600" cy="19" r=".9" fill="#2b1a0c" stroke="none"/>
+        <path d="M50 20Q51.500 24 49.500 25" fill="none" stroke="#a8704a" stroke-width=".7"/>
+        <path d="M47 27.500Q50 29 53 27.500" fill="none" stroke="#9a4a3a" stroke-width=".8"/>
+        <circle cx="44.500" cy="24" r="1.800" fill="#e9967a" opacity=".35" stroke="none"/>
+        <circle cx="55.500" cy="24" r="1.800" fill="#e9967a" opacity=".35" stroke="none"/>
+        <!-- hat + feather -->
+        <path d="M36 13Q50 -2 64 12Q64 15 62 14.500Q50 8 38 14.500Q36 15 36 13Z" fill="#b8342c"/>
+        <path d="M38 13.500Q50 8.500 62 13.500" fill="none" stroke="#f0cf4a" stroke-width="1.800"/>
+        <path d="M60 10Q74 -2 90 4Q82 6 74 11Q68 14 62 14Z" fill="#3f8f3f"/>
+        <path d="M62 11Q74 4 88 5M64 12.500Q74 7 84 7.500" fill="none" stroke="#e8f4dc" stroke-width=".6"/>
+      </g>
+    </symbol>
+    <symbol id="icon-cavall" viewBox="0 0 100 130">
+      <ellipse cx="54" cy="125" rx="38" ry="3.500" fill="#000" opacity=".22"/>
+      <g stroke="#2a1a10" stroke-width=".9" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M6 125l-1-5 3 3 2-4 1 6zM92 125l-1-5 3 3 2-4 1 6z" fill="#4a8a34" stroke-width=".6"/>
+        <!-- tail -->
+        <path d="M88 66Q100 72 98 94Q96 108 90 114Q94 98 90 88Q88 78 84 72Z" fill="#f3e7c9"/>
+        <path d="M91 74Q97 86 95 104M93 72Q99 88 96 100" fill="none" stroke="#cdbf98" stroke-width=".6"/>
+        <!-- far legs (darker) -->
+        <g fill="none" stroke-linecap="round">
+          <path d="M43 94L45 108L44 119" stroke="#2a1a10" stroke-width="7.600"/><path d="M43 94L45 108L44 119" stroke="#8a5a2b" stroke-width="5.800"/>
+          <path d="M72 94L70 108L68 119" stroke="#2a1a10" stroke-width="7.600"/><path d="M72 94L70 108L68 119" stroke="#8a5a2b" stroke-width="5.800"/>
+        </g>
+        <g fill="#2a1a10" stroke="none"><ellipse cx="44" cy="121" rx="4.500" ry="2.400"/><ellipse cx="68" cy="121" rx="4.500" ry="2.400"/></g>
+        <!-- body, neck and head -->
+        <path d="M8 54Q10 46 18 38L24 30C36 36 40 48 48 60Q64 55 82 62Q92 66 90 80L86 92Q64 101 42 96L34 92Q28 80 30 68L30 62Q26 62 22 62L12 62Q6 61 8 54Z" fill="url(#g-horse)"/>
+        <path d="M20 34L22 24 27 32ZM26 31L30 22 32 32Z" fill="#8a5a2b"/>
+        <path d="M8.500 57Q7 60.500 11.500 61.500" fill="none" stroke="#2a1a10" stroke-width=".7"/>
+        <circle cx="12" cy="56" r="1" fill="#2a1a10" stroke="none"/>
+        <ellipse cx="20" cy="42" rx="2.300" ry="1.600" fill="#fff" stroke-width=".4"/>
+        <circle cx="19.700" cy="42" r="1.100" fill="#2b1a0c" stroke="none"/>
+        <path d="M14 48Q18 53 24 52" fill="none" stroke="#7d4f26" stroke-width=".7"/>
+        <!-- near legs -->
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M37 90L27 99L22 108" stroke="#2a1a10" stroke-width="8"/><path d="M37 90L27 99L22 108" stroke="#a86b36" stroke-width="6.200"/>
+          <path d="M80 88L91 102L85 116" stroke="#2a1a10" stroke-width="8"/><path d="M80 88L91 102L85 116" stroke="#a86b36" stroke-width="6.200"/>
+          <path d="M52 94L54 108L53 119" stroke="#2a1a10" stroke-width="8"/><path d="M52 94L54 108L53 119" stroke="#a86b36" stroke-width="6.200"/>
+        </g>
+        <g fill="#2a1a10" stroke="none"><ellipse cx="20.500" cy="110.500" rx="3.800" ry="2.600" transform="rotate(-30 20.500 110.500)"/><ellipse cx="84" cy="118" rx="4.500" ry="2.400"/><ellipse cx="53" cy="121" rx="4.800" ry="2.400"/></g>
+        <!-- mane -->
+        <path d="M24 28Q42 34 52 56Q54 66 48 76Q46 58 38 48Q36 40 24 28Z" fill="#f3e7c9"/>
+        <path d="M28 32Q42 40 46 58M32 33Q44 46 46 66" fill="none" stroke="#cdbf98" stroke-width=".7"/>
+        <!-- bridle -->
+        <path d="M10 50Q16 53 24 49M24 47Q22 41 20 39M24 49Q30 52 34 60" fill="none" stroke="#b8342c" stroke-width="1.300"/>
+        <circle cx="18" cy="51" r="1.600" fill="url(#g-gold)" stroke-width=".4"/>
+        <!-- blanket -->
+        <path d="M46 61Q64 55 84 63L88 88L86 98L80 93L74 99L68 94L62 100L56 95L50 99L44 94Z" fill="url(#g-cloth)"/>
+        <path d="M47 71Q66 66 87 71" fill="none" stroke="#3f6aa8" stroke-width="2"/>
+        <path d="M45 96Q50 101 56 97Q62 102 68 96Q74 101 80 95Q84 99 86 97" fill="none" stroke="#f0cf4a" stroke-width="2.200" stroke-dasharray="1.400 1"/>
+        <path d="M62 76h14v10Q69 92 62 86Z" fill="#f0cf4a"/>
+        <path d="M65 78h8v6Q69 88 65 84Z" fill="#3f6aa8" stroke-width=".5"/>
+        <!-- saddle -->
+        <path d="M50 62Q64 52 80 62L78 70L52 70Z" fill="#5a3a18"/>
+        <!-- rider leg -->
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M62 68L67 84L63 97" stroke="#2a1a10" stroke-width="8.400"/><path d="M62 68L67 84L63 97" stroke="#3f8f3f" stroke-width="6.600"/></g>
+        <path d="M57 96L69 96L71 101L57 102Z" fill="#4a2d14"/>
+        <path d="M60 96L68 96" stroke="#f0cf4a" stroke-width="1.200"/>
+        <!-- rider torso -->
+        <path d="M54 38Q64 32 74 38L76 66Q64 70 54 66Z" fill="url(#g-blue)"/>
+        <path d="M65 40V68" stroke="#1f3a68" stroke-width=".8" fill="none"/>
+        <g fill="#f0cf4a" stroke-width=".4"><circle cx="65" cy="45" r="1.100"/><circle cx="65" cy="51" r="1.100"/><circle cx="65" cy="57" r="1.100"/></g>
+        <path d="M54 63Q65 70 76 63L76 68Q65 75 54 68Z" fill="url(#g-goldlin)"/>
+        <!-- left arm holding reins -->
+        <path d="M54 40Q44 44 46 56Q52 56 56 48Z" fill="#c4362c"/>
+        <path d="M46 54Q42 60 44 66L50 65Q50 60 52 56Z" fill="url(#g-blue)"/>
+        <circle cx="46" cy="66" r="3" fill="url(#g-skin)"/>
+        <path d="M44 66Q34 64 26 54" fill="none" stroke="#b8342c" stroke-width="1"/>
+        <!-- right arm raised -->
+        <path d="M74 40Q86 40 86 52Q78 54 72 48Z" fill="#e3a52a"/>
+        <path d="M76 41Q79 47 78 52M81 42Q84 48 83 52" stroke="#b8342c" stroke-width="1.500" fill="none"/>
+        <path d="M82 48Q92 38 90 28L96 27Q99 42 87 56Z" fill="url(#g-blue)"/>
+        <circle cx="93" cy="25" r="3.800" fill="url(#g-skin)"/>
+        <!-- ruff, head, hat -->
+        <path d="M58 36Q64 40 72 36Q70 32 64 33Q60 32 58 36Z" fill="#f8f2e2"/>
+        <g fill="#f8f2e2" stroke-width=".5"><circle cx="59" cy="36" r="1.800"/><circle cx="63" cy="38" r="1.800"/><circle cx="67.500" cy="38" r="1.800"/><circle cx="71.500" cy="36" r="1.800"/></g>
+        <path d="M61 28h8v7Q65 38 61 35z" fill="url(#g-skin)"/>
+        <ellipse cx="65" cy="22" rx="8" ry="9.500" fill="url(#g-skin)"/>
+        <path d="M57 20Q56 12 65 12.500Q74 12 73 20Q71 15 65 15.500Q59 15 57 20Z" fill="#7a4a1c"/>
+        <path d="M57 19Q54 26 57 31Q58 26 59 22ZM73 19Q76 26 73 31Q72 26 71 22Z" fill="#7a4a1c"/>
+        <path d="M61 18.500Q63.500 17.500 64.500 19M66 19Q67 17.500 69.500 18.500" fill="none" stroke="#5a3a18" stroke-width=".8"/>
+        <ellipse cx="62" cy="21" rx="1.900" ry="1.100" fill="#fff" stroke-width=".4"/><ellipse cx="68.500" cy="21" rx="1.900" ry="1.100" fill="#fff" stroke-width=".4"/>
+        <circle cx="62.100" cy="21" r=".85" fill="#2b1a0c" stroke="none"/><circle cx="68.600" cy="21" r=".85" fill="#2b1a0c" stroke="none"/>
+        <path d="M65.500 22Q67 26 65 27" fill="none" stroke="#a8704a" stroke-width=".7"/>
+        <path d="M62.500 29.500Q65.500 31 68.500 29.500" fill="none" stroke="#9a4a3a" stroke-width=".8"/>
+        <path d="M51 15Q64 0 79 14Q79 17 77 16.500Q65 10 53 16.500Q51 17 51 15Z" fill="#b8342c"/>
+        <path d="M53 15.500Q65 10.500 77 15.500" fill="none" stroke="#f0cf4a" stroke-width="1.800"/>
+        <path d="M74 11Q86 -1 98 5Q92 7 85 12Q80 15 76 15Z" fill="#f8f2e2"/>
+        <path d="M76 12Q86 4 96 6M78 13.500Q86 8 92 8.500" fill="none" stroke="#c9d3c0" stroke-width=".6"/>
+        <path d="M70 10Q80 -1 90 1Q84 5 78 10Z" fill="#3f8f3f"/>
+      </g>
+    </symbol>
+    <symbol id="icon-rei" viewBox="0 0 100 130">
+      <g stroke="#2a1a10" stroke-width=".9" stroke-linejoin="round" stroke-linecap="round">
+        <!-- sceptre (behind) -->
+        <path d="M11.5 24V124" stroke="#8a5a12" stroke-width="3.2" fill="none"/>
+        <path d="M11.5 24V124" stroke="#e8bd3d" stroke-width="1.6" fill="none"/>
+        <path d="M11.5 22c-6-2-7-9-3.4-11 2 1.600 3 3.600 3.400 6 .4-2.400 1.400-4.400 3.400-6 3.600 2 2.600 9-3.400 11z" fill="url(#g-gold)"/>
+        <circle cx="11.5" cy="26" r="2.4" fill="url(#g-gold)"/>
+        <!-- robe -->
+        <path d="M16 130L11 94Q10 66 31 57L69 57Q90 66 89 94L84 130Z" fill="url(#g-cloth)"/>
+        <path d="M25 130Q22 106 27 86M36 130Q34 110 37 92M64 130Q66 110 63 92M75 130Q78 106 73 86" fill="none" stroke="#6e1a14" stroke-width=".8"/>
+        <!-- gold front band -->
+        <rect x="45" y="74" width="10" height="56" fill="url(#g-goldlin)"/>
+        <g fill="#8a1f18" stroke="none"><circle cx="50" cy="80" r="1.3"/><circle cx="50" cy="88" r="1.3"/><circle cx="50" cy="96" r="1.3"/><circle cx="50" cy="104" r="1.3"/><circle cx="50" cy="112" r="1.3"/><circle cx="50" cy="120" r="1.3"/></g>
+        <!-- belt -->
+        <path d="M12 100Q50 111 88 100L88 106Q50 117 12 106Z" fill="url(#g-goldlin)"/>
+        <g fill="#b8342c"><circle cx="28" cy="107" r="1.8"/><circle cx="50" cy="111" r="2.4"/><circle cx="72" cy="107" r="1.8"/></g>
+        <!-- sleeves and hands -->
+        <path d="M13 82Q3 100 8 116L21 116Q21 98 27 86Z" fill="#a82c24"/>
+        <path d="M7 112h15v5H7z" fill="url(#g-goldlin)"/>
+        <circle cx="14.500" cy="112" r="4" fill="url(#g-skin)"/>
+        <path d="M87 82Q97 100 92 116L79 116Q79 98 73 86Z" fill="#a82c24"/>
+        <path d="M78 112h15v5H78z" fill="url(#g-goldlin)"/>
+        <circle cx="85.500" cy="110" r="4" fill="url(#g-skin)"/>
+        <!-- orb with cross -->
+        <circle cx="85.500" cy="98" r="7.500" fill="url(#g-gold)"/>
+        <path d="M85.500 90.500V84M82.500 87h6" stroke="#8a5a12" stroke-width="1.600" fill="none"/>
+        <path d="M78.500 98h14" stroke="#8a5a12" stroke-width=".6" fill="none"/>
+        <!-- ermine mantle -->
+        <path d="M12 88Q8 62 30 53L70 53Q92 62 88 88Q72 78 50 80Q28 78 12 88Z" fill="#f8f2e2"/>
+        <g fill="#2a1a10" stroke="none">
+          <path d="M22 70l1 5-2 0z"/><path d="M33 64l1 5-2 0z"/><path d="M66 64l1 5-2 0z"/><path d="M78 70l1 5-2 0z"/>
+          <path d="M20 82l1 5-2 0z"/><path d="M30 77l1 5-2 0z"/><path d="M69 77l1 5-2 0z"/><path d="M80 82l1 5-2 0z"/>
+          <path d="M42 74l1 4-2 0z"/><path d="M58 74l1 4-2 0z"/>
+        </g>
+        <!-- chain -->
+        <path d="M31 55Q50 74 69 55" fill="none" stroke="#c9961f" stroke-width="2.600"/>
+        <g fill="url(#g-gold)" stroke-width=".5"><circle cx="37" cy="61" r="1.700"/><circle cx="43" cy="66" r="1.700"/><circle cx="57" cy="66" r="1.700"/><circle cx="63" cy="61" r="1.700"/></g>
+        <circle cx="50" cy="70" r="3.400" fill="#b8342c" stroke="#c9961f" stroke-width="1"/>
+        <!-- neck -->
+        <path d="M43 46h14v10Q50 61 43 56z" fill="url(#g-skin)"/>
+        <!-- hair -->
+        <path d="M35 28Q27 40 33 58Q38 46 39 34Z" fill="#f3f1ea"/>
+        <path d="M65 28Q73 40 67 58Q62 46 61 34Z" fill="#f3f1ea"/>
+        <!-- face -->
+        <ellipse cx="50" cy="35" rx="11.500" ry="13.500" fill="url(#g-skin)"/>
+        <ellipse cx="38.800" cy="36" rx="1.800" ry="3" fill="#dba578"/>
+        <ellipse cx="61.200" cy="36" rx="1.800" ry="3" fill="#dba578"/>
+        <circle cx="43" cy="40" r="2.600" fill="#e9967a" opacity=".35" stroke="none"/>
+        <circle cx="57" cy="40" r="2.600" fill="#e9967a" opacity=".35" stroke="none"/>
+        <!-- beard -->
+        <path d="M38.500 38Q37 58 50 63Q63 58 61.500 38Q57 52 50 52Q43 52 38.500 38Z" fill="#f6f4ee"/>
+        <path d="M43 55Q46 61 50 62M57 55Q54 61 50 62M50 53V61M46 50Q47 56 49 59M54 50Q53 56 51 59" fill="none" stroke="#c4c1b6" stroke-width=".6"/>
+        <path d="M42.500 44Q50 40 57.500 44Q53 48 50 46Q47 48 42.500 44Z" fill="#fbfaf6"/>
+        <!-- face features -->
+        <path d="M50 33Q52.500 40 49.500 42" fill="none" stroke="#a8704a" stroke-width=".8"/>
+        <path d="M41.500 31Q45 29 48 30.500M52 30.500Q55 29 58.500 31" fill="none" stroke="#cfccc2" stroke-width="1.300"/>
+        <ellipse cx="45" cy="34" rx="2.700" ry="1.500" fill="#fff" stroke-width=".5"/>
+        <ellipse cx="55" cy="34" rx="2.700" ry="1.500" fill="#fff" stroke-width=".5"/>
+        <circle cx="45.200" cy="34" r="1.100" fill="#3a2a1a" stroke="none"/>
+        <circle cx="55.200" cy="34" r="1.100" fill="#3a2a1a" stroke="none"/>
+        <path d="M43.500 46.500Q50 48.500 56.500 46.500" fill="none" stroke="#9a4a3a" stroke-width=".7"/>
+        <!-- crown -->
+        <path d="M38 24Q50 4 62 24Z" fill="#b8342c"/>
+        <path d="M36.500 24L37.500 14 43 19 46 10 50 18 54 10 57 19 62.500 14 63.500 24Q50 28.500 36.500 24Z" fill="url(#g-gold)"/>
+        <path d="M37 22Q50 26.500 63 22" fill="none" stroke="#8a5a12" stroke-width=".7"/>
+        <g stroke-width=".4"><circle cx="37.500" cy="13" r="1.400" fill="#fff"/><circle cx="46" cy="9" r="1.400" fill="#fff"/><circle cx="54" cy="9" r="1.400" fill="#fff"/><circle cx="62.500" cy="13" r="1.400" fill="#fff"/>
+        <circle cx="50" cy="16.500" r="1.800" fill="#c0392b"/><circle cx="43.500" cy="23" r="1.500" fill="#c0392b"/><circle cx="56.500" cy="23" r="1.500" fill="#c0392b"/><circle cx="50" cy="25" r="1.500" fill="#3f6aa8"/></g>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="masthead">
+  <div>
+    <h1>Botifarra</h1>
+    <div class="tagline">Tu i el Nord contra l'Oest i l'Est. Primer equip a 101 punts.</div>
+  </div>
+  <div class="masthead-actions">
+    <button class="new-game-btn" id="lastTrickBtn" aria-label="Veure l'última basa" disabled><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="6" width="11" height="14" rx="2"/><path d="M9 3h9a2 2 0 0 1 2 2v11"/></svg><span class="txt">Última basa</span></button>
+    <button class="assist-toggle" id="assistToggle" aria-pressed="true" aria-label="Ajuda: cartes jugables">
+      <span class="dot"></span>
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+      <span class="txt">Ajuda: cartes jugables</span>
+    </button>
+    <button class="assist-toggle" id="soundToggle" aria-pressed="true" aria-label="So">
+      <span class="dot"></span>
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg>
+      <span class="txt">So activat</span>
+    </button>
+    <button class="new-game-btn" id="newGameBtn" aria-label="Nova partida"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg><span class="txt">Nova partida</span></button>
+  </div>
+</div>
+
+<div class="game-shell">
+  <div class="table-wrap">
+    <div class="table" id="table">
+
+      <div class="trump-badge" id="trumpBadge">
+        <span class="lbl">Trumfo</span>
+        <span class="val" id="trumpVal">—</span>
+      </div>
+      <div class="message-banner" id="messageBanner">Repartint les cartes…</div>
+
+      <div class="zone zone-north" id="zoneNorth">
+        <div class="player-tag team0"><span class="dot"></span><span class="nm">Nord</span><span class="role">el teu company</span><span class="badges" id="badges2"></span></div>
+        <div class="hand hand-north" id="handNorth"></div>
+      </div>
+
+      <div class="zone zone-west" id="zoneWest">
+        <div class="hand hand-vert" id="handWest"></div>
+        <div class="player-tag team1"><span class="dot"></span><span class="nm">Oest</span><span class="role">rival</span><span class="badges" id="badges1"></span></div>
+      </div>
+
+      <div class="zone zone-east" id="zoneEast">
+        <div class="hand hand-vert" id="handEast"></div>
+        <div class="player-tag team1"><span class="dot"></span><span class="nm">Est</span><span class="role">rival</span><span class="badges" id="badges3"></span></div>
+      </div>
+
+      <div class="center-slots" id="centerSlots">
+        <div class="slot slot-n" id="slotNorth"></div>
+        <div class="slot slot-w" id="slotWest"></div>
+        <div class="slot slot-e" id="slotEast"></div>
+        <div class="slot slot-s" id="slotSouth"></div>
+        <div class="trick-flash" id="trickFlash"></div>
+      </div>
+
+      <div class="flight-layer" id="flightLayer"></div>
+
+      <div class="zone zone-south" id="zoneSouth">
+        <div class="hand hand-south" id="handSouth"></div>
+        <div class="player-tag team0"><span class="dot"></span><span class="nm">Tu</span><span class="role">Sud</span><span class="badges" id="badges0"></span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="panel">
+      <h2>Marcador</h2>
+      <div class="score-row">
+        <span class="team-name">Tu &amp; Nord</span>
+        <span class="team-score" id="scoreTeam0">0</span>
+      </div>
+      <div class="score-row">
+        <span class="team-name">Oest &amp; Est</span>
+        <span class="team-score" id="scoreTeam1">0</span>
+      </div>
+      <div class="target-note">Partida a 101 punts. Cada mà reparteix 72 punts (60 de cartes + 12 de basses); només puntua l'equip que passa de 36, pel que té de més.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Regles clàssiques</h2>
+      <ul class="rules-list">
+        <li>Baralla de 48 cartes. Força: 9 (Manilla), As, Rei, Cavall, Sota, 8, 7, 6, 5, 4, 3, 2.</li>
+        <li>Punts: Manilla 5, As 4, Rei 3, Cavall 2, Sota 1, i 1 per basa.</li>
+        <li>El repartidor tria el trumfo, «Botifarra» (sense trumfo, punts x2) o passa al company.</li>
+        <li>Els rivals poden dir Contro (x2); els qui han triat trumfo, Recontro (x4); i els rivals, Sant Vicenç (x8). Amb Botifarra tot va x2 més (Contro x4, Recontro x8) i no hi ha Sant Vicenç.</li>
+        <li>Cal seguir el pal. Només estàs obligat a matar les cartes dels rivals (amb una carta més alta del pal o amb trumfo), no les del company. Sense pal, has de matar amb trumfo si pots.</li>
+        <li>Es juga en sentit antihorari; surt qui té a la dreta del repartidor.</li>
+        <li>Al costat del nom: <span class="badge b-trump">&#9733;</span> qui ha triat el trumfo, <span class="badge b-contra">C</span> Contro, <span class="badge b-recontra">R</span> Recontro, <span class="badge b-sant">SV</span> Sant Vicenç.</li>
+      </ul>
+    </div>
+
+    <div class="panel" id="statsPanel">
+      <h2>Estadístiques</h2>
+      <div id="statsBody"></div>
+      <button class="stats-reset" id="statsReset">Esborra els totals</button>
+    </div>
+  </div>
+</div>
+
+<footer class="credit">Botifarra amb les regles clàssiques, per jugar contra la IA.</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= CONFIG ================= */
+const SUITS = [
+  {id:'oros', name:'Oros', icon:'icon-oros', kind:'grid'},
+  {id:'copes', name:'Copes', icon:'icon-copes', kind:'grid'},
+  {id:'espases', name:'Espases', icon:'icon-espases', kind:'diag'},
+  {id:'bastos', name:'Bastos', icon:'icon-bastos-a', kind:'diag'}
+];
+const VALUES = [1,2,3,4,5,6,7,8,9,10,11,12];
+const RANK = [9,1,12,11,10,8,7,6,5,4,3,2]; // strongest -> weakest (9 = Manilla)
+const POINTS = {9:5,1:4,12:3,11:2,10:1,8:0,7:0,6:0,5:0,4:0,3:0,2:0};
+const LABELS = {1:'1',2:'2',3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',11:'11',12:'12'};
+const TARGET_SCORE = 101;
+
+const PLAYERS = [
+  {id:0, name:'Tu', pos:'south', team:0, isUser:true},
+  {id:1, name:'Oest', pos:'west', team:1, isUser:false},
+  {id:2, name:'Nord', pos:'north', team:0, isUser:false},
+  {id:3, name:'Est', pos:'east', team:1, isUser:false}
+];
+const NEXT = i => (i+3)%4;   // anticlockwise (Sud -> Est -> Nord -> Oest)
+const PREV = i => (i+1)%4;
+
+// Every pause of the game loop belongs to one "epoch". Starting a new game bumps the epoch, so the
+// loop of the previous game simply never wakes up again (no ghost panels, no moves in the new game).
+let EPOCH = 0;
+function sleep(ms){ const e = EPOCH; return new Promise(r=>setTimeout(()=>{ if(e===EPOCH) r(); }, ms)); }
+function rankIndex(val){ return RANK.indexOf(val); }
+function cardStronger(a,b){ return rankIndex(a.val) < rankIndex(b.val); } // true if a beats b (same suit)
+
+/* ================= SOUND (synthesised with WebAudio, no files) ================= */
+const Snd = (()=>{
+  let ctx = null, master = null, noiseBuf = null;
+  let on = true;
+  try{ on = localStorage.getItem('botifarra-sound') !== 'off'; }catch(e){}
+  function ac(){
+    if(!ctx){
+      try{
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if(!AC) return null;
+        ctx = new AC();
+        master = ctx.createGain(); master.gain.value = 0.7; master.connect(ctx.destination);
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+      }catch(e){ return null; }
+    }
+    if(ctx.state==='suspended') ctx.resume();
+    return ctx;
+  }
+  function env(g, t, a, d, peak){
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t+a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+a+d);
+  }
+  function tone(f, t0, dur, type, peak, f2){
+    const c = ac(); if(!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    if(f2) o.frequency.exponentialRampToValueAtTime(f2, t0+dur);
+    env(g, t0, 0.005, dur, peak);
+    o.connect(g); g.connect(master);
+    o.start(t0); o.stop(t0+dur+0.05);
+  }
+  function burst(t0, dur, freq, q, peak){
+    const c = ac(); if(!c) return;
+    const s = c.createBufferSource(); s.buffer = noiseBuf;
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    const g = c.createGain(); env(g, t0, 0.002, dur, peak);
+    s.connect(f); f.connect(g); g.connect(master);
+    s.start(t0, Math.random()*0.5); s.stop(t0+dur+0.05);
+  }
+  const now = ()=>{ const c = ac(); return c ? c.currentTime : 0; };
+  const api = {
+    isOn: ()=>on,
+    set(v){ on = !!v; try{ localStorage.setItem('botifarra-sound', on?'on':'off'); }catch(e){} if(on){ ac(); api.click(); } },
+    unlock(){ if(on) ac(); },
+    card(){ if(!on) return; const t = now(); burst(t, 0.07, 1600, 0.8, 0.5); tone(150, t, 0.09, 'sine', 0.35, 70); },
+    flick(t){ if(!on) return; burst(t||now(), 0.035, 3800+Math.random()*900, 1.2, 0.2); },
+    dealSeq(n){ if(!on) return; const t = now(); for(let i=0;i<n;i++) api.flick(t+0.1+i*0.055); },
+    shuffle(){ if(!on) return; const t = now(); for(let i=0;i<10;i++) api.flick(t+i*0.055); },
+    click(){ if(!on) return; tone(880, now(), 0.05, 'triangle', 0.12); },
+    trump(){ if(!on) return; const t = now(); tone(523, t, 0.35, 'sine', 0.2); tone(784, t+0.09, 0.45, 'sine', 0.18); },
+    contra(level){ if(!on) return; const t = now(); for(let i=0;i<=level;i++) tone(260+level*60, t+i*0.11, 0.12, 'sawtooth', 0.16, 180); },
+    trick(win){ if(!on) return; const t = now(); if(win){ tone(660, t, 0.18, 'triangle', 0.2); tone(880, t+0.1, 0.25, 'triangle', 0.2); } else tone(300, t, 0.22, 'triangle', 0.15, 220); },
+    hand(win){ if(!on) return; const t = now(); const n = win ? [523,659,784,1047] : [392,330,262]; n.forEach((f,i)=>tone(f, t+i*(win?0.09:0.14), 0.3, 'triangle', 0.18)); },
+    game(win){ if(!on) return; const t = now(); const n = win ? [523,659,784,1047,1319,1568] : [392,349,311,262]; n.forEach((f,i)=>tone(f, t+i*0.13, 0.5, win?'triangle':'sine', 0.2)); },
+    error(){ if(!on) return; tone(120, now(), 0.14, 'square', 0.12); }
+  };
+  return api;
+})();
+document.addEventListener('pointerdown', ()=>Snd.unlock());
+
+/* ================= DOM refs ================= */
+const el = {
+  table: document.getElementById('table'),
+  flight: document.getElementById('flightLayer'),
+  trumpVal: document.getElementById('trumpVal'),
+  trumpBadge: document.getElementById('trumpBadge'),
+  message: document.getElementById('messageBanner'),
+  trickFlash: document.getElementById('trickFlash'),
+  handSouth: document.getElementById('handSouth'),
+  handNorth: document.getElementById('handNorth'),
+  handWest: document.getElementById('handWest'),
+  handEast: document.getElementById('handEast'),
+  zone: { south: document.getElementById('zoneSouth'), north: document.getElementById('zoneNorth'), west: document.getElementById('zoneWest'), east: document.getElementById('zoneEast') },
+  slot: { south: document.getElementById('slotSouth'), north: document.getElementById('slotNorth'), west: document.getElementById('slotWest'), east: document.getElementById('slotEast') },
+  scoreTeam0: document.getElementById('scoreTeam0'),
+  scoreTeam1: document.getElementById('scoreTeam1'),
+  newGameBtn: document.getElementById('newGameBtn'),
+  assistToggle: document.getElementById('assistToggle'),
+  centerSlots: document.getElementById('centerSlots')
+};
+
+/* ================= GAME STATE ================= */
+let G = null;
+
+function freshState(){
+  return {
+    hands: [[],[],[],[]],
+    teamScore: [0,0],
+    dealerStart: Math.floor(Math.random()*4),        // current dealer (first dealer is random)
+    trumpSuit: null,
+    isBotifarra: false,
+    trumpChooser: 0,
+    doubleLevel: 0,
+    doubleBy: {},
+    history: [],
+    played: [],
+    void: [{},{},{},{}],
+    trickLeader: 0,
+    turn: 0,
+    trick: [],             // [{player, card}]
+    tricksWon: 0,
+    handPoints: [0,0],
+    handsPlayed: 0,
+    gameOver: false
+  };
+}
+
+function buildDeck(){
+  const deck = [];
+  for(const s of SUITS){
+    for(const v of VALUES){
+      deck.push({suit:s.id, val:v});
+    }
+  }
+  for(let i=deck.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [deck[i],deck[j]] = [deck[j],deck[i]];
+  }
+  return deck;
+}
+
+function suitOf(id){ return SUITS.find(s=>s.id===id); }
+
+/* ================= RENDER HELPERS ================= */
+function cardIconSVG(suitId){
+  const s = suitOf(suitId);
+  return `<svg><use href="#${s.icon}"></use></svg>`;
+}
+
+function pipMarkup(iconId, x, y, rot, big){
+  const rotStyle = rot ? ` rotate(${rot}deg)` : '';
+  return `<span class="pip${big?' big':''}" style="left:${x}%; top:${y}%; transform:translate(-50%,-50%)${rotStyle};"><svg><use href="#${iconId}"></use></svg></span>`;
+}
+
+// Grid layout (oros, copes) — same orientation throughout, classic corners/center pattern.
+const GRID_LAYOUT = {
+  8: [ {x:26,y:9},{x:74,y:9},{x:26,y:37},{x:74,y:37},{x:26,y:63},{x:74,y:63},{x:26,y:91},{x:74,y:91} ],
+  9: [ {x:26,y:9},{x:74,y:9},{x:26,y:37},{x:74,y:37},{x:26,y:63},{x:74,y:63},{x:26,y:91},{x:74,y:91},{x:50,y:50} ],
+  1: [ {x:50,y:50,big:true} ],
+  2: [ {x:50,y:22}, {x:50,y:78} ],
+  3: [ {x:28,y:16}, {x:50,y:50}, {x:72,y:84} ],
+  4: [ {x:26,y:18}, {x:74,y:18}, {x:26,y:82}, {x:74,y:82} ],
+  5: [ {x:26,y:18}, {x:74,y:18}, {x:50,y:50}, {x:26,y:82}, {x:74,y:82} ],
+  6: [ {x:26,y:14}, {x:74,y:14}, {x:26,y:50}, {x:74,y:50}, {x:26,y:86}, {x:74,y:86} ],
+  7: [ {x:26,y:12}, {x:74,y:12}, {x:26,y:46}, {x:74,y:46}, {x:26,y:84}, {x:74,y:84}, {x:50,y:30} ]
+};
+
+// Diagonal layout (espases, bastos) — parallel blades/clubs that cross, matching the traditional Spanish deck.
+const DIAG_LAYOUT = {
+  8: [ {x:25,y:10,rot:0},{x:75,y:10,rot:0},{x:25,y:37,rot:0},{x:75,y:37,rot:0},{x:25,y:63,rot:0},{x:75,y:63,rot:0},{x:25,y:90,rot:0},{x:75,y:90,rot:0} ],
+  9: [ {x:25,y:10,rot:0},{x:75,y:10,rot:0},{x:25,y:37,rot:0},{x:75,y:37,rot:0},{x:25,y:63,rot:0},{x:75,y:63,rot:0},{x:25,y:90,rot:0},{x:75,y:90,rot:0},{x:50,y:50,rot:90} ],
+  1: [ {x:50,y:50, rot:-35, big:true} ],
+  2: [ {x:36,y:50, rot:-35}, {x:64,y:50, rot:-35} ],
+  3: [ {x:24,y:50, rot:-35}, {x:50,y:50, rot:-35}, {x:76,y:50, rot:-35} ],
+  4: [ {x:50,y:27, rot:-35}, {x:50,y:27, rot:35}, {x:50,y:73, rot:-35}, {x:50,y:73, rot:35} ],
+  5: [ {x:26,y:22, rot:0}, {x:74,y:22, rot:0}, {x:26,y:78, rot:0}, {x:74,y:78, rot:0}, {x:50,y:50, rot:90} ],
+  6: [ {x:25,y:18, rot:0}, {x:50,y:18, rot:0}, {x:75,y:18, rot:0}, {x:25,y:82, rot:0}, {x:50,y:82, rot:0}, {x:75,y:82, rot:0} ],
+  7: [ {x:25,y:15, rot:0}, {x:50,y:15, rot:0}, {x:75,y:15, rot:0}, {x:25,y:80, rot:0}, {x:50,y:80, rot:0}, {x:75,y:80, rot:0}, {x:50,y:50, rot:90} ]
+};
+
+const COURT_ICON = {10:'icon-sota', 11:'icon-cavall', 12:'icon-rei'};
+const HELD_POS = {10:[87,11], 11:[89,10], 12:[87,11]};  // where the suit emblem is held (% of the figure box)
+
+function renderCardFace(card, small){
+  const lbl = LABELS[card.val];
+  const suitCfg = suitOf(card.suit);
+  const cornerIcon = `<svg><use href="#${suitCfg.icon}"></use></svg>`;
+  let middle;
+  if(COURT_ICON[card.val]){
+    const hp = HELD_POS[card.val];
+    middle = `<div class="court-figure"><div class="court-art" style="--hx:${hp[0]};--hy:${hp[1]}"><svg class="figure-base"><use href="#${COURT_ICON[card.val]}"></use></svg><span class="held-icon"><svg><use href="#${suitCfg.icon}"></use></svg></span></div></div>`;
+  } else {
+    const layout = suitCfg.kind === 'diag' ? DIAG_LAYOUT[card.val] : GRID_LAYOUT[card.val];
+    const pips = (layout || []).map((p, i)=>{
+      let iconId = suitCfg.icon;
+      if(card.suit === 'bastos'){
+        iconId = (i % 2 === 0) ? 'icon-bastos-a' : 'icon-bastos-b';
+      }
+      return pipMarkup(iconId, p.x, p.y, p.rot || 0, p.big);
+    }).join('');
+    middle = `<div class="pip-field">${pips}</div>`;
+  }
+  return `
+    <div class="corner top">${lbl}${cornerIcon}</div>
+    ${middle}
+    <div class="corner bottom">${lbl}${cornerIcon}</div>
+  `;
+}
+
+function makeCardEl(card, {small=false, playable=false}={}){
+  const d = document.createElement('div');
+  d.className = 'card suit-' + card.suit + (small?' small':'');
+  if(playable) d.classList.add('playable'); else if(playable===false) {}
+  d.innerHTML = renderCardFace(card, small);
+  d.dataset.suit = card.suit;
+  d.dataset.val = card.val;
+  return d;
+}
+
+function suitLabel(id){ return suitOf(id).name; }
+
+let msgFadeTimer = null;
+function setMessage(msg){
+  el.message.classList.add('fade');
+  clearTimeout(msgFadeTimer);
+  msgFadeTimer = setTimeout(()=>{
+    el.message.textContent = msg;
+    el.message.classList.remove('fade');
+  }, 140);
+}
+
+function flashCenter(msg){
+  el.trickFlash.textContent = msg;
+  el.trickFlash.classList.add('show');
+}
+function clearFlash(){
+  el.trickFlash.classList.remove('show');
+}
+
+function setActiveZone(playerIdx){
+  ['south','north','west','east'].forEach(p=>el.zone[p].classList.remove('active'));
+  if(playerIdx!==null && playerIdx!==undefined){
+    el.zone[PLAYERS[playerIdx].pos].classList.add('active');
+  }
+}
+
+function renderBadges(){
+  for(let i=0;i<4;i++){
+    const box = document.getElementById('badges'+i);
+    if(!box) continue;
+    let h = '';
+    if(G.trumpChooser===i && (G.isBotifarra || G.trumpSuit)){
+      h += G.isBotifarra
+        ? '<span class="badge b-trump" title="Ha triat Botifarra (sense trumfo)">&#10005;</span>'
+        : '<span class="badge b-trump" title="Ha cantat el trumfo: '+suitLabel(G.trumpSuit)+'">'+cardIconSVG(G.trumpSuit)+'</span>';
+    }
+    if(G.doubleBy && G.doubleBy.contrar===i) h += '<span class="badge b-contra" title="Ha dit Contro (x2)">C</span>';
+    if(G.doubleBy && G.doubleBy.recontrar===i) h += '<span class="badge b-recontra" title="Ha dit Recontro (x4)">R</span>';
+    if(G.doubleBy && G.doubleBy.santvicenc===i) h += '<span class="badge b-sant" title="Ha dit Sant Vicen\u00e7 (x8)">SV</span>';
+    box.innerHTML = h;
+  }
+}
+
+function updateTrumpBadge(){
+  renderBadges();
+  if(G.isBotifarra || G.trumpSuit){
+    const mult = multiplier();
+    const tag = mult>1 ? ' <span style="opacity:.8;font-size:10px">x'+mult+'</span>' : '';
+    if(G.isBotifarra){
+      el.trumpVal.innerHTML = 'Botifarra (sense trumfo)' + tag;
+      el.trumpBadge.style.color = '#f0c869';
+    } else {
+      el.trumpVal.innerHTML = cardIconSVG(G.trumpSuit) + ' ' + suitLabel(G.trumpSuit) + tag;
+      el.trumpBadge.style.color = ({oros:'#f0c869',copes:'#e08a83',espases:'#c7d0da',bastos:'#a9d98a'})[G.trumpSuit];
+    }
+    el.trumpBadge.classList.remove('reveal');
+    void el.trumpBadge.offsetWidth;
+    el.trumpBadge.classList.add('reveal');
+  } else {
+    el.trumpVal.textContent = '—';
+    el.trumpBadge.style.color = '';
+  }
+}
+
+function animateNumber(elNode, from, to, duration){
+  if(from === to){ elNode.textContent = to; return; }
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    elNode.textContent = Math.round(from + (to - from) * eased);
+    if(t < 1) requestAnimationFrame(step);
+    else elNode.textContent = to;
+  }
+  requestAnimationFrame(step);
+}
+
+let displayedScore = [0,0];
+function updateScores(bump){
+  animateNumber(el.scoreTeam0, displayedScore[0], G.teamScore[0], 650);
+  animateNumber(el.scoreTeam1, displayedScore[1], G.teamScore[1], 650);
+  displayedScore = [G.teamScore[0], G.teamScore[1]];
+  if(bump){
+    [el.scoreTeam0, el.scoreTeam1].forEach(e=>{
+      e.classList.add('bump');
+      setTimeout(()=>e.classList.remove('bump'), 260);
+    });
+  }
+}
+
+/* ---- hands render ---- */
+let southClickResolver = null;
+let assistMode = true;
+let currentValidSet = null;
+
+function tapPlay(cardNode, card){
+  if(!southClickResolver) return;
+  const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+  if(coarse && !cardNode.classList.contains('selected')){
+    el.handSouth.querySelectorAll('.card.selected').forEach(n=>n.classList.remove('selected'));
+    cardNode.classList.add('selected');
+    Snd.click();
+    setMessage('Toca la carta de nou per jugar-la.');
+    return;
+  }
+  const resolve = southClickResolver;
+  southClickResolver = null;
+  resolve(card);
+}
+
+function shakeCard(cardEl_){
+  cardEl_.classList.remove('shake');
+  void cardEl_.offsetWidth;
+  cardEl_.classList.add('shake');
+}
+
+function renderHands({dealAnim=false, validSet=null, interactive=false}={}){
+  if(interactive) currentValidSet = validSet;
+  // South (user) — face up
+  el.handSouth.innerHTML = '';
+  G.hands[0].forEach((card, i)=>{
+    const c = makeCardEl(card, {small:false});
+    if(dealAnim){ c.classList.add('deal-anim'); c.style.animationDelay = (i*55)+'ms'; }
+    if(interactive){
+      const isValid = !validSet || validSet.has(card.suit+'-'+card.val);
+      if(assistMode){
+        c.classList.add(isValid ? 'playable' : 'unplayable');
+        if(isValid){
+          c.addEventListener('click', ()=>tapPlay(c, card));
+        }
+      } else {
+        c.classList.add('clickable');
+        c.addEventListener('click', ()=>{
+          if(!southClickResolver) return;
+          if(isValid){
+            tapPlay(c, card);
+          } else {
+            shakeCard(c);
+            Snd.error();
+            setMessage('Jugada no permesa: cal seguir el pal i matar si el teu company no guanya.');
+          }
+        });
+      }
+    }
+    el.handSouth.appendChild(c);
+  });
+
+  // North / West / East — face down backs, count = hand length
+  [ {arr:G.hands[2], target:el.handNorth},
+    {arr:G.hands[1], target:el.handWest},
+    {arr:G.hands[3], target:el.handEast} ].forEach(({arr,target})=>{
+    target.innerHTML = '';
+    arr.forEach((_, i)=>{
+      const b = document.createElement('div');
+      b.className = 'card-back';
+      if(dealAnim){ b.classList.add('deal-anim'); b.style.animationDelay = (i*55)+'ms'; }
+      target.appendChild(b);
+    });
+  });
+}
+
+function waitForUserCardClick(){
+  return new Promise(resolve=>{ southClickResolver = resolve; });
+}
+
+/* ================= FLIGHT ANIMATION ================= */
+function rectRelativeToTable(rect){
+  const t = el.table.getBoundingClientRect();
+  return { top: rect.top - t.top, left: rect.left - t.left, width: rect.width, height: rect.height };
+}
+
+function flyElement(sourceRectAbs, targetRectAbs, buildInnerHTML, className, duration){
+  return new Promise(resolve=>{
+    const sr = rectRelativeToTable(sourceRectAbs);
+    const tr = rectRelativeToTable(targetRectAbs);
+    const ghost = document.createElement('div');
+    ghost.className = className;
+    ghost.innerHTML = buildInnerHTML;
+    ghost.style.width = sr.width+'px';
+    ghost.style.height = sr.height+'px';
+    ghost.style.transform = `translate(${sr.left}px, ${sr.top}px)`;
+    el.flight.appendChild(ghost);
+    // force reflow
+    ghost.getBoundingClientRect();
+    requestAnimationFrame(()=>{
+      const dx = tr.left + (tr.width-sr.width)/2;
+      const dy = tr.top + (tr.height-sr.height)/2;
+      ghost.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    const ep = EPOCH;
+    setTimeout(()=>{
+      ghost.remove();
+      if(ep===EPOCH) resolve();
+    }, duration);
+  });
+}
+
+async function animatePlay(playerIdx, card, sourceEl){
+  const sourceRect = sourceEl.getBoundingClientRect();
+  const targetEl = el.slot[PLAYERS[playerIdx].pos];
+  const targetRect = targetEl.getBoundingClientRect();
+  const isUser = PLAYERS[playerIdx].isUser;
+  const inner = isUser ? renderCardFace(card,false) : '';
+  const cls = isUser ? 'card suit-'+card.suit : 'card-back';
+  await flyElement(sourceRect, targetRect, inner, cls, 420);
+  // place real static card in slot
+  const c = makeCardEl(card, {small:false});
+  c.classList.add('landed');
+  c.style.rotate = (Math.random()*20-10).toFixed(1) + 'deg';
+  Snd.card();
+  targetEl.innerHTML = '';
+  targetEl.appendChild(c);
+}
+
+async function animateCollect(winnerIdx){
+  const winnerZoneEl = el.zone[PLAYERS[winnerIdx].pos];
+  const winnerRect = winnerZoneEl.getBoundingClientRect();
+  const promises = [];
+  ['south','north','west','east'].forEach(pos=>{
+    const slotEl = el.slot[pos];
+    const cardEl_ = slotEl.querySelector('.card');
+    if(!cardEl_) return;
+    cardEl_.classList.remove('trick-winner','landed');
+    cardEl_.style.animation = 'none';
+    const rect = cardEl_.getBoundingClientRect();
+    const sr = rectRelativeToTable(rect);
+    const wr = rectRelativeToTable(winnerRect);
+    cardEl_.style.position = 'absolute';
+    cardEl_.style.top='0'; cardEl_.style.left='0';
+    cardEl_.style.transition = 'transform .5s cubic-bezier(.4,.2,.4,1), opacity .5s ease';
+    cardEl_.style.transform = `translate(${sr.left}px,${sr.top}px)`;
+    el.flight.appendChild(cardEl_);
+    cardEl_.getBoundingClientRect();
+    requestAnimationFrame(()=>{
+      const dx = wr.left + (wr.width - rect.width)/2;
+      const dy = wr.top + (wr.height - rect.height)/2;
+      cardEl_.style.transform = `translate(${dx}px,${dy}px) scale(.5)`;
+      cardEl_.style.opacity = '0';
+    });
+    promises.push(sleep(520));
+  });
+  await Promise.all(promises);
+  el.flight.querySelectorAll('.card,.card-back').forEach(n=>n.remove());
+  ['south','north','west','east'].forEach(pos=>{ el.slot[pos].innerHTML=''; });
+}
+
+/* ================= RULES ENGINE (classic Botifarra) ================= */
+function currentTrump(){ return G.isBotifarra ? null : G.trumpSuit; }
+function who(i){ return PLAYERS[i].name; }
+function v(i, you, other){ return PLAYERS[i].isUser ? you : other; }
+
+function lowestCard(cards){
+  return cards.slice().sort((a,b)=>rankIndex(b.val)-rankIndex(a.val))[0];
+}
+function dedupeCards(arr){
+  const seen = new Set(); const out = [];
+  for(const c of arr){ const k = c.suit+'-'+c.val; if(!seen.has(k)){ seen.add(k); out.push(c); } }
+  return out;
+}
+
+function compareCards(a, b, ledSuit, trump){
+  const aTrump = trump && a.suit===trump, bTrump = trump && b.suit===trump;
+  if(aTrump && !bTrump) return 1;
+  if(!aTrump && bTrump) return -1;
+  if(aTrump && bTrump) return rankIndex(a.val) < rankIndex(b.val) ? 1 : (rankIndex(a.val)>rankIndex(b.val)?-1:0);
+  const aLed = a.suit===ledSuit, bLed = b.suit===ledSuit;
+  if(aLed && !bLed) return 1;
+  if(!aLed && bLed) return -1;
+  if(aLed && bLed) return rankIndex(a.val) < rankIndex(b.val) ? 1 : (rankIndex(a.val)>rankIndex(b.val)?-1:0);
+  return 0;
+}
+
+function currentBestPlay(){
+  const ledSuit = G.trick[0].card.suit;
+  let best = G.trick[0];
+  for(let i=1;i<G.trick.length;i++){
+    if(compareCards(G.trick[i].card, best.card, ledSuit, currentTrump()) > 0) best = G.trick[i];
+  }
+  return best;
+}
+function trickWinnerSoFar(){
+  if(G.trick.length===0) return null;
+  return currentBestPlay().player;
+}
+
+// Legal plays (ButiNET rules, "lliure o occidental"): always follow the led suit if you can;
+// you only have to beat ("matar") the opponents' winning card, never your partner's.
+// With no card of the led suit you must trump (win the trick) if you can; otherwise anything goes.
+function legalPlays(playerIdx){
+  const hand = G.hands[playerIdx];
+  if(G.trick.length===0) return hand.slice();
+  const ledSuit = G.trick[0].card.suit;
+  const trump = currentTrump();
+  const canFollow = hand.some(c=>c.suit===ledSuit);
+  const followSet = canFollow ? hand.filter(c=>c.suit===ledSuit) : hand.slice();
+  const best = currentBestPlay();
+  const partnerWinning = PLAYERS[best.player].team === PLAYERS[playerIdx].team;
+  if(partnerWinning) return followSet;
+  const beating = followSet.filter(c=>compareCards(c, best.card, ledSuit, trump) > 0);
+  return beating.length ? beating : followSet;
+}
+
+/* ================= AI LOGIC (card tracking + Monte-Carlo simulation) ================= */
+function registerPlay(player, card){
+  if(G.trick.length>0){
+    const led = G.trick[0].card.suit;
+    if(card.suit!==led) G.void[player][led] = true;
+  }
+  G.played.push({player, card});
+}
+
+function unseenCards(idx){
+  const have = new Set(G.hands[idx].map(c=>c.suit+'-'+c.val));
+  const gone = new Set(G.played.map(p=>p.card.suit+'-'+p.card.val));
+  const out = [];
+  for(const s of SUITS) for(const val of VALUES){
+    const k = s.id+'-'+val;
+    if(!have.has(k) && !gone.has(k)) out.push({suit:s.id, val});
+  }
+  return out;
+}
+
+function remainingAfter(idx){
+  const done = new Set(G.trick.map(t=>t.player)); done.add(idx);
+  return [0,1,2,3].filter(p=>!done.has(p));
+}
+
+// could opponent p still beat winCard (given what has been seen / void information)?
+function opponentMayBeat(winCard, p, unseen, ledSuit, trump){
+  const voidLed = !!G.void[p][ledSuit];
+  const ledUnseen = unseen.filter(c=>c.suit===ledSuit).length;
+  for(const c of unseen){
+    if(G.void[p][c.suit]) continue;
+    if(c.suit!==ledSuit){
+      const isTrump = trump && c.suit===trump;
+      if(!isTrump) continue;
+      if(!(voidLed || ledUnseen<=2)) continue;
+    }
+    if(compareCards(c, winCard, ledSuit, trump) > 0) return true;
+  }
+  return false;
+}
+
+function cardIsSafe(card, idx, ledSuit){
+  const trump = currentTrump();
+  const unseen = unseenCards(idx).filter(c=>!(c.suit===card.suit && c.val===card.val));
+  for(const p of remainingAfter(idx)){
+    if(PLAYERS[p].team===PLAYERS[idx].team) continue;
+    if(opponentMayBeat(card, p, unseen, ledSuit, trump)) return false;
+  }
+  return true;
+}
+
+function aiLead(idx, legal){
+  const trump = currentTrump();
+  const hand = G.hands[idx];
+  const myTeam = PLAYERS[idx].team;
+  const partner = (idx+2)%4;
+  const teamChose = PLAYERS[G.trumpChooser] && PLAYERS[G.trumpChooser].team===myTeam;
+  const suitLen = {};
+  for(const c of hand) suitLen[c.suit] = (suitLen[c.suit]||0)+1;
+  const unseen = unseenCards(idx);
+  const trumpUnseen = trump ? unseen.filter(c=>c.suit===trump).length : 0;
+  const opps = [0,1,2,3].filter(p=>PLAYERS[p].team!==myTeam);
+  let best = null, bestScore = -1e9;
+  for(const c of legal){
+    const isT = trump && c.suit===trump;
+    let sc;
+    if(cardIsSafe(c, idx, c.suit)){
+      sc = 100 + POINTS[c.val]*3;
+      if(isT) sc += trumpUnseen>0 ? 6 : -4;
+    } else {
+      sc = 20 - POINTS[c.val]*7;
+      if(isT){ sc -= 12; if(teamChose && suitLen[c.suit]>=4) sc += 16; }
+      sc += rankIndex(c.val)*0.6;
+      sc += (suitLen[c.suit]||0)*1.2;
+      if(trump && !isT && trumpUnseen>0 && G.void[partner][c.suit] && !G.void[partner][trump]) sc += 18;
+      if(trump && !isT && opps.some(o=>G.void[o][c.suit])) sc -= 14;
+    }
+    if(sc>bestScore){ bestScore = sc; best = c; }
+  }
+  return best;
+}
+
+function dumpCard(cards){
+  const trump = currentTrump();
+  const nonTrump = trump ? cards.filter(c=>c.suit!==trump) : cards;
+  const pool = nonTrump.length ? nonTrump : cards;
+  return pool.slice().sort((a,b)=> POINTS[a.val]-POINTS[b.val] || rankIndex(b.val)-rankIndex(a.val))[0];
+}
+
+function aiPickHeuristic(idx){
+  const legal = legalPlays(idx);
+  if(legal.length===1) return legal[0];
+  if(G.trick.length===0) return aiLead(idx, legal);
+  const ledSuit = G.trick[0].card.suit;
+  const trump = currentTrump();
+  const best = currentBestPlay();
+  const partnerWinning = PLAYERS[best.player].team === PLAYERS[idx].team;
+
+  if(partnerWinning){
+    const counting = legal.filter(c=>POINTS[c.val]>0);
+    if(counting.length && cardIsSafe(best.card, idx, ledSuit)){
+      counting.sort((a,b)=>POINTS[b.val]-POINTS[a.val]);
+      return counting[0];
+    }
+    return dumpCard(legal);
+  }
+  const beating = legal.filter(c=>compareCards(c, best.card, ledSuit, trump) > 0);
+  if(beating.length){
+    const sorted = beating.slice().sort((a,b)=>{
+      const aT = trump && a.suit===trump, bT = trump && b.suit===trump;
+      if(aT!==bT) return aT?1:-1;
+      return rankIndex(b.val)-rankIndex(a.val);
+    });
+    const safe = sorted.filter(c=>cardIsSafe(c, idx, ledSuit));
+    return safe.length ? safe[0] : sorted[0];
+  }
+  return dumpCard(legal);
+}
+
+
+/* ---- Perfect-information Monte-Carlo for the card to play ---- */
+function dealUnseen(idx, unseen, need){
+  for(let attempt=0; attempt<30; attempt++){
+    const pool = shuffleArr(unseen.slice());
+    const hands = [[],[],[],[]];
+    hands[idx] = G.hands[idx].slice();
+    let ok = true;
+    for(const c of pool){
+      const cands = [0,1,2,3].filter(p=>p!==idx && hands[p].length<need[p] && !G.void[p][c.suit]);
+      if(!cands.length){ ok = false; break; }
+      let tot = 0; for(const p of cands) tot += need[p]-hands[p].length;
+      let r = Math.random()*tot, pick = cands[0];
+      for(const p of cands){ r -= need[p]-hands[p].length; if(r<=0){ pick = p; break; } }
+      hands[pick].push(c);
+    }
+    if(ok) return hands;
+  }
+  const pool = shuffleArr(unseen.slice());
+  const hands = [[],[],[],[]];
+  hands[idx] = G.hands[idx].slice();
+  let k = 0;
+  for(let p=0;p<4;p++){ if(p===idx) continue; hands[p] = pool.slice(k, k+need[p]); k += need[p]; }
+  return hands;
+}
+
+function rolloutAfter(idx, card, hands){
+  const saveG = G;
+  G = {hands: hands.map(h=>h.slice()), trick: saveG.trick.slice(), played: saveG.played.slice(),
+       void: saveG.void.map(o=>Object.assign({}, o)), trumpSuit: saveG.trumpSuit, isBotifarra: saveG.isBotifarra,
+       trumpChooser: saveG.trumpChooser, doubleLevel:0, doubleBy:{}, history:[], dealerStart: saveG.dealerStart, sim:true};
+  const myTeam = PLAYERS[idx].team;
+  const pts = [0,0];
+  G.hands[idx] = G.hands[idx].filter(x=>!(x.suit===card.suit && x.val===card.val));
+  registerPlay(idx, card);
+  G.trick.push({player:idx, card});
+  let pl = NEXT(idx);
+  while(G.trick.length<4){
+    const c = aiPickHeuristic(pl);
+    G.hands[pl] = G.hands[pl].filter(x=>!(x.suit===c.suit && x.val===c.val));
+    registerPlay(pl, c);
+    G.trick.push({player:pl, card:c});
+    pl = NEXT(pl);
+  }
+  let w = trickWinnerSoFar();
+  let s = 1; for(const p of G.trick) s += POINTS[p.card.val];
+  pts[PLAYERS[w].team] += s;
+  while(G.hands[w].length>0){
+    G.trick = [];
+    let q = w;
+    for(let k=0;k<4;k++){
+      const c = aiPickHeuristic(q);
+      G.hands[q] = G.hands[q].filter(x=>!(x.suit===c.suit && x.val===c.val));
+      registerPlay(q, c);
+      G.trick.push({player:q, card:c});
+      q = NEXT(q);
+    }
+    w = trickWinnerSoFar();
+    s = 1; for(const p of G.trick) s += POINTS[p.card.val];
+    pts[PLAYERS[w].team] += s;
+  }
+  G = saveG;
+  return pts[myTeam]-pts[1-myTeam];
+}
+
+function aiPickCard(idx){
+  const legal = legalPlays(idx);
+  if(legal.length===1) return legal[0];
+  if(G.sim) return aiPickHeuristic(idx);
+  const unseen = unseenCards(idx);
+  const need = [0,1,2,3].map(p=>p===idx?0:G.hands[p].length);
+  const playsLeft = Math.max(4, G.hands[idx].length*4);
+  const samples = Math.max(8, Math.min(40, Math.floor(8000/(legal.length*playsLeft))));
+  const scores = legal.map(()=>0);
+  for(let i=0;i<samples;i++){
+    const hands = dealUnseen(idx, unseen, need);
+    for(let ci=0; ci<legal.length; ci++) scores[ci] += rolloutAfter(idx, legal[ci], hands);
+  }
+  let bi = 0;
+  for(let ci=1; ci<legal.length; ci++) if(scores[ci]>scores[bi]) bi = ci;
+  return legal[bi];
+}
+
+/* ---- Monte-Carlo: deal the unknown cards at random and play the hand out with this same policy ---- */
+function shuffleArr(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function sandboxDeal(idx, myHand){
+  const mine = new Set(myHand.map(c=>c.suit+'-'+c.val));
+  const rest = [];
+  for(const s of SUITS) for(const val of VALUES){ if(!mine.has(s.id+'-'+val)) rest.push({suit:s.id, val}); }
+  shuffleArr(rest);
+  const hands = [[],[],[],[]];
+  let k = 0;
+  for(let p=0;p<4;p++){
+    if(p===idx) hands[p] = myHand.slice();
+    else { hands[p] = rest.slice(k, k+12); k += 12; }
+  }
+  return hands;
+}
+
+function simulateHand(hands, trumpSuit, isBota, chooser, leader){
+  const saveG = G;
+  G = {hands: hands.map(h=>h.slice()), trick:[], played:[], void:[{},{},{},{}], trumpSuit, isBotifarra:isBota, trumpChooser:chooser, doubleLevel:0, doubleBy:{}, history:[], dealerStart:saveG.dealerStart, sim:true};
+  const pts = [0,0];
+  let ld = leader;
+  for(let t=0;t<12;t++){
+    G.trick = [];
+    let pl = ld;
+    for(let k=0;k<4;k++){
+      const c = aiPickHeuristic(pl);
+      G.hands[pl] = G.hands[pl].filter(x=>!(x.suit===c.suit && x.val===c.val));
+      registerPlay(pl, c);
+      G.trick.push({player:pl, card:c});
+      pl = NEXT(pl);
+    }
+    const w = trickWinnerSoFar();
+    let s = 1; for(const p of G.trick) s += POINTS[p.card.val];
+    pts[PLAYERS[w].team] += s;
+    ld = w;
+  }
+  G = saveG;
+  return pts;
+}
+
+const SIM_N = {trump:18, double:28};
+
+function evalOption(idx, hand, trumpSuit, isBota, n){
+  const team = PLAYERS[idx].team;
+  const leader = NEXT(G.dealerStart);
+  let sum = 0;
+  for(let i=0;i<n;i++){
+    const pts = simulateHand(sandboxDeal(idx, hand), trumpSuit, isBota, idx, leader);
+    sum += (pts[team]-36);
+  }
+  return sum/n * (isBota?2:1);
+}
+
+const AI_TUNE = {passBelow:1.5, double:{contrar:3, recontrar:4, santvicenc:6}};
+
+function aiTrumpDecision(hand, canPass, idx){
+  let bestEV = -1e9, bestChoice = null;
+  for(const s of SUITS){
+    const ev = evalOption(idx, hand, s.id, false, SIM_N.trump);
+    if(ev>bestEV){ bestEV = ev; bestChoice = {type:'suit', suit:s.id}; }
+  }
+  const evB = evalOption(idx, hand, null, true, SIM_N.trump);
+  if(evB>bestEV){ bestEV = evB; bestChoice = {type:'botifarra'}; }
+  if(canPass && bestEV < AI_TUNE.passBelow) return {type:'pass'};
+  return bestChoice;
+}
+
+function aiWantsDouble(idx, kind){
+  const team = PLAYERS[idx].team;
+  const leader = NEXT(G.dealerStart);
+  const trump = G.trumpSuit, bota = G.isBotifarra;
+  let sum = 0;
+  for(let i=0;i<SIM_N.double;i++){
+    const pts = simulateHand(sandboxDeal(idx, G.hands[idx]), trump, bota, G.trumpChooser, leader);
+    sum += (pts[team]-36);
+  }
+  return sum/SIM_N.double > AI_TUNE.double[kind];
+}
+
+
+/* ================= LAST TRICK VIEWER ================= */
+function updateLastTrickBtn(){
+  const b = document.getElementById('lastTrickBtn');
+  if(b) b.disabled = !(G && G.lastTrick);
+}
+
+function closeLastTrick(){
+  const ov = document.querySelector('.overlay.last-trick');
+  if(ov) ov.remove();
+  document.removeEventListener('keydown', lastTrickKey);
+}
+function lastTrickKey(e){ if(e.key==='Escape') closeLastTrick(); }
+
+function showLastTrick(){
+  const lt = G && G.lastTrick;
+  if(!lt || document.querySelector('.overlay.last-trick')) return;
+  Snd.click();
+  const ov = document.createElement('div');
+  ov.className = 'overlay last-trick';
+  const card = document.createElement('div');
+  card.className = 'overlay-card lt-card';
+  const winTxt = lt.winner===0 ? 'Guanyes tu' : 'Guanya ' + who(lt.winner);
+  card.innerHTML = '<h2>Última basa</h2><p class="lt-sub">' + winTxt + ' · +' + lt.pts + ' punts</p><div class="lt-grid"></div><button class="overlay-btn" type="button">Tanca</button>';
+  const grid = card.querySelector('.lt-grid');
+  const areas = {north:'n', west:'w', east:'e', south:'s'};
+  lt.plays.forEach((pl, i)=>{
+    const cell = document.createElement('div');
+    cell.className = 'lt-cell' + (pl.player===lt.winner ? ' win' : '');
+    cell.style.gridArea = areas[PLAYERS[pl.player].pos];
+    const name = document.createElement('div');
+    name.className = 'lt-name';
+    name.textContent = who(pl.player) + (i===0 ? ' · surt' : '');
+    cell.appendChild(name);
+    cell.appendChild(makeCardEl(pl.card, {small:false}));
+    if(pl.player===lt.winner){ const chip = document.createElement('div'); chip.className = 'lt-chip'; chip.textContent = 'guanya'; cell.appendChild(chip); }
+    grid.appendChild(cell);
+  });
+  const mid = document.createElement('div');
+  mid.className = 'lt-mid'; mid.style.gridArea = 'c';
+  mid.textContent = G.isBotifarra ? 'Botifarra' : 'Trumfo ' + suitLabel(G.trumpSuit);
+  grid.appendChild(mid);
+  card.querySelector('.overlay-btn').addEventListener('click', closeLastTrick);
+  ov.addEventListener('click', (e)=>{ if(e.target===ov) closeLastTrick(); });
+  ov.appendChild(card);
+  document.body.appendChild(ov);
+  document.addEventListener('keydown', lastTrickKey);
+}
+
+/* ================= STATISTICS ================= */
+const STATS_KEY = 'botifarra-stats-v1';
+function defaultStats(){ return {games:0,gamesWon:0,hands:0,handsWon:0,handsLost:0,handsTied:0,ptsFor:0,ptsAgainst:0,chose:0,botifarres:0,maxMult:1,dblSaid:0,dblWon:0}; }
+function loadStats(){
+  try{ const o = JSON.parse(localStorage.getItem(STATS_KEY)); if(o && typeof o==='object') return Object.assign(defaultStats(), o); }catch(e){}
+  return defaultStats();
+}
+function saveStats(){ try{ localStorage.setItem(STATS_KEY, JSON.stringify(totals)); }catch(e){} }
+let totals = loadStats();
+
+function recordHand(res){
+  const chTeam = PLAYERS[G.trumpChooser].team;
+  G.history.push({n:G.history.length+1, bota:G.isBotifarra, suit:G.trumpSuit, chooser:who(G.trumpChooser), chTeam, mult:res.mult, pts:[G.handPoints[0],G.handPoints[1]], winner:res.winner, gained:res.gained});
+  totals.hands++;
+  if(res.winner===0){ totals.handsWon++; totals.ptsFor += res.gained; }
+  else if(res.winner===1){ totals.handsLost++; totals.ptsAgainst += res.gained; }
+  else totals.handsTied++;
+  if(chTeam===0) totals.chose++;
+  if(G.isBotifarra) totals.botifarres++;
+  totals.maxMult = Math.max(totals.maxMult, res.mult);
+  Object.keys(G.doubleBy).forEach(k=>{
+    if(PLAYERS[G.doubleBy[k]].team===0){ totals.dblSaid++; if(res.winner===0) totals.dblWon++; }
+  });
+  saveStats();
+  renderStats();
+}
+
+function renderStats(){
+  const box = document.getElementById('statsBody');
+  if(!box) return;
+  const pct = (a,b)=> b ? Math.round(100*a/b)+'%' : '—';
+  const st = (val,label)=>'<div class="stat"><strong>'+val+'</strong><span>'+label+'</span></div>';
+  let h = '<div class="stats-sub">Aquesta partida</div>';
+  if(!G || G.history.length===0){
+    h += '<div class="hist-empty">Encara no s\'ha acabat cap mà.</div>';
+  } else {
+    h += '<table class="hist"><thead><tr><th>#</th><th>Trumfo</th><th>Triat</th><th>x</th><th>Punts</th><th>Resultat</th></tr></thead><tbody>';
+    G.history.forEach(r=>{
+      const trump = r.bota ? 'Botifarra' : cardIconSVG(r.suit);
+      let res = '—', cls = '';
+      if(r.winner===0){ res = '+'+r.gained; cls='win'; }
+      else if(r.winner===1){ res = '−'+r.gained; cls='lose'; }
+      h += '<tr><td>'+r.n+'</td><td>'+trump+'</td><td>'+r.chooser+'</td><td>x'+r.mult+'</td><td>'+r.pts[0]+'-'+r.pts[1]+'</td><td class="'+cls+'">'+res+'</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  h += '<div class="stats-sub">Totals</div><div class="stats-grid">'
+    + st(totals.games,'partides jugades')
+    + st(pct(totals.gamesWon, totals.games),'partides guanyades')
+    + st(totals.hands,'mans jugades')
+    + st(pct(totals.handsWon, totals.hands),'mans guanyades')
+    + st(totals.ptsFor+' / '+totals.ptsAgainst,'punts a favor / en contra')
+    + st(totals.chose,'cops que heu triat trumfo')
+    + st(totals.botifarres,'Botifarres jugades')
+    + st('x'+totals.maxMult,'multiplicador màxim')
+    + st(totals.dblSaid ? totals.dblWon+'/'+totals.dblSaid : '—','Contros vostres reeixits')
+    + '</div>';
+  box.innerHTML = h;
+}
+
+/* ================= TRUMP SELECTION + DOUBLING ================= */
+function multiplier(){
+  return Math.pow(2, (G.isBotifarra?1:0) + G.doubleLevel);
+}
+
+// Keep the choice panel in the free space between the north hand and the player's own hand,
+// shrinking it if needed, so it never hides the player's cards.
+function placeChoicePanel(panel){
+  const tr = el.table.getBoundingClientRect();
+  const nh = el.handNorth.getBoundingClientRect();
+  const sh = el.handSouth.getBoundingClientRect();
+  const topEdge = (nh.height>0 ? nh.bottom : tr.top) - tr.top + 8;
+  const bottomEdge = (sh.height>0 ? sh.top : tr.bottom) - tr.top - 8;
+  const avail = Math.max(60, bottomEdge - topEdge);
+  const ph = panel.offsetHeight, pw = panel.offsetWidth;
+  let sc = Math.min(1, avail/ph, (tr.width-16)/pw);
+  sc = Math.max(sc, 0.4);
+  panel.style.bottom = 'auto';
+  panel.style.left = '50%';
+  panel.style.transformOrigin = '50% 0';
+  panel.style.transform = 'translateX(-50%) scale(' + sc + ')';
+  panel.style.top = (topEdge + Math.max(0, (avail - ph*sc)/2)) + 'px';
+  panel.style.transition = 'opacity .2s ease';
+  panel.style.opacity = '1';
+}
+
+function showChoicePanel(promptText, buttons){
+  return new Promise(resolve=>{
+    const panel = document.createElement('div');
+    panel.className = 'bid-panel';
+    panel.innerHTML = `<div class="prompt">${promptText}</div><div class="bid-options"></div>`;
+    const box = panel.querySelector('.bid-options');
+    const onResize = ()=>placeChoicePanel(panel);
+    buttons.forEach(b=>{
+      const btn = document.createElement('button');
+      btn.className = b.cls || 'bid-suit-btn';
+      btn.innerHTML = b.html;
+      btn.addEventListener('click', ()=>{ Snd.click(); window.removeEventListener('resize', onResize); panel.remove(); resolve(b.value); });
+      box.appendChild(btn);
+    });
+    panel.style.opacity = '0';
+    panel.style.animation = 'none';
+    panel.style.width = 'max-content';
+    panel.style.maxWidth = 'calc(100% - 16px)';
+    el.table.appendChild(panel);
+    placeChoicePanel(panel);
+    window.addEventListener('resize', onResize);
+  });
+}
+
+async function getTrumpChoice(idx, canPass){
+  setActiveZone(idx);
+  if(PLAYERS[idx].isUser){
+    setMessage(canPass ? "Ets el repartidor: tria el trumfo o passa'l al company." : 'El teu company et passa el torn: has de triar trumfo.');
+    const buttons = SUITS.map(s=>({html: cardIconSVG(s.id)+'<span>'+s.name+'</span>', value:{type:'suit', suit:s.id}}));
+    buttons.push({html:'<span style="font-size:20px;line-height:22px">&#10005;</span><span>Botifarra</span>', value:{type:'botifarra'}});
+    if(canPass) buttons.push({cls:'bid-pass-btn', html:'Passo al company', value:{type:'pass'}});
+    return await showChoicePanel(canPass ? 'Quin trumfo tries?' : 'Has de triar (no pots passar)', buttons);
+  }
+  setMessage(who(idx) + ' està pensant…');
+  await sleep(900);
+  return aiTrumpDecision(G.hands[idx], canPass, idx);
+}
+
+async function getDoubleDecision(idx, kind){
+  setActiveZone(idx);
+  const names = {contrar:'Contro', recontrar:'Recontro', santvicenc:'Sant Vicenç'};
+  if(PLAYERS[idx].isUser){
+    setMessage('Vols dir «' + names[kind] + '»?');
+    return await showChoicePanel('Vols dir «' + names[kind] + '»? Els punts es doblen.', [
+      {html:'<span style="font-size:13px">Sí, ' + names[kind] + '!</span>', value:true},
+      {cls:'bid-pass-btn', html:'No', value:false}
+    ]);
+  }
+  setMessage(who(idx) + ' està pensant…');
+  await sleep(650);
+  return aiWantsDouble(idx, kind);
+}
+
+async function trumpAndDoublingPhase(){
+  const dealer = G.dealerStart;
+  setMessage(v(dealer,'Reparteixes tu.',who(dealer)+' reparteix.'));
+  await sleep(700);
+  let chooser = dealer;
+  let choice = await getTrumpChoice(dealer, true);
+  if(choice.type==='pass'){
+    flashCenter(who(dealer) + v(dealer,': passo al company',' passa al company'));
+    await sleep(1000); clearFlash();
+    chooser = (dealer+2)%4;
+    choice = await getTrumpChoice(chooser, false);
+  }
+  G.trumpChooser = chooser;
+  if(choice.type==='botifarra'){ G.isBotifarra = true; G.trumpSuit = null; }
+  else { G.isBotifarra = false; G.trumpSuit = choice.suit; }
+  updateTrumpBadge();
+  Snd.trump();
+  flashCenter(G.isBotifarra ? who(chooser) + v(chooser,' tries Botifarra!',' tria Botifarra!') : who(chooser) + v(chooser,' tries ',' tria ') + suitLabel(G.trumpSuit) + '!');
+  await sleep(1100); clearFlash();
+
+  // Contro / Recontro / Sant Vicenç  (order: right of the last speaker, then left)
+  const names = {contrar:'Contro', recontrar:'Recontro', santvicenc:'Sant Vicenç'};
+  const stages = [['contrar',1],['recontrar',2],['santvicenc',3]];
+  let last = chooser;
+  for(const [kind, level] of stages){
+    if(kind==='santvicenc' && G.isBotifarra) break;
+    let said = null;
+    for(const d of [NEXT(last), PREV(last)]){
+      if(await getDoubleDecision(d, kind)){ said = d; break; }
+    }
+    if(said===null) break;
+    G.doubleLevel = level;
+    G.doubleBy[kind] = said;
+    last = said;
+    updateTrumpBadge();
+    Snd.contra(level);
+    flashCenter(who(said) + ': ' + names[kind] + '! (x' + multiplier() + ')');
+    await sleep(1200); clearFlash();
+  }
+  setActiveZone(null);
+  G.trickLeader = NEXT(dealer);
+  G.turn = G.trickLeader;
+  setMessage((G.isBotifarra ? 'Botifarra' : 'Trumfo ' + suitLabel(G.trumpSuit)) + ' · punts x' + multiplier() + '. ' + who(G.trickLeader) + v(G.trickLeader,' surts tu.',' surt.'));
+  await sleep(1100);
+}
+
+/* ================= TRICK PLAY ================= */
+async function playAllTricks(){
+  for(let t=0; t<12; t++){
+    await playOneTrick();
+  }
+}
+
+async function playOneTrick(){
+  G.trick = [];
+  let player = G.trickLeader;
+  renderHands();
+
+  for(let i=0;i<4;i++){
+    setActiveZone(player);
+    let card;
+    if(PLAYERS[player].isUser){
+      const valid = legalPlays(player);
+      const validSet = new Set(valid.map(c=>c.suit+'-'+c.val));
+      setMessage('És el teu torn. Tria una carta.');
+      renderHands({validSet, interactive:true});
+      card = await waitForUserCardClick();
+      const sourceEl = [...el.handSouth.children].find(e=>e.dataset.suit===card.suit && +e.dataset.val===card.val);
+      G.hands[0] = G.hands[0].filter(c=>!(c.suit===card.suit && c.val===card.val));
+      await animatePlay(player, card, sourceEl);
+      renderHands();
+    } else {
+      setMessage(PLAYERS[player].name + ' està pensant…');
+      await sleep(480 + Math.random()*260);
+      card = aiPickCard(player);
+      G.hands[player] = G.hands[player].filter(c=>!(c.suit===card.suit && c.val===card.val));
+      const backEl = el['hand'+capitalize(PLAYERS[player].pos)].lastElementChild || el['hand'+capitalize(PLAYERS[player].pos)].firstElementChild;
+      const sourceEl2 = backEl || el.zone[PLAYERS[player].pos];
+      await animatePlay(player, card, sourceEl2);
+      renderHands();
+    }
+    registerPlay(player, card);
+    G.trick.push({player, card});
+    player = NEXT(player);
+  }
+
+  const winner = trickWinnerSoFar();
+  let pts = 0;
+  for(const play of G.trick) pts += POINTS[play.card.val];
+  pts += 1; // one point per trick
+  G.handPoints[PLAYERS[winner].team] += pts;
+
+  setActiveZone(winner);
+  G.lastTrick = {plays: G.trick.map(t=>({player:t.player, card:t.card})), winner, pts};
+  updateLastTrickBtn();
+  const winnerSlotCard = el.slot[PLAYERS[winner].pos].querySelector('.card');
+  if(winnerSlotCard) winnerSlotCard.classList.add('trick-winner');
+  Snd.trick(PLAYERS[winner].team===0);
+  flashCenter(who(winner) + v(winner,' guanyes',' guanya') + ' la basa (+' + pts + ')');
+  setMessage(PLAYERS[winner].isUser ? 'T\'emportes la basa amb ' + pts + ' punts.' : who(winner) + ' s\'emporta la basa amb ' + pts + ' punts.');
+  await sleep(950);
+  clearFlash();
+  await animateCollect(winner);
+
+  G.trickLeader = winner;
+  G.turn = winner;
+  setActiveZone(null);
+}
+
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ================= HAND / GAME FLOW ================= */
+async function dealHand(){
+  const deck = buildDeck();
+  G.hands = [[],[],[],[]];
+  for(let i=0;i<12;i++){
+    for(let p=0;p<4;p++){
+      G.hands[p].push(deck.pop());
+    }
+  }
+  // sort hands for display: south by suit then rank; others don't matter but sort anyway
+  for(let p=0;p<4;p++){
+    G.hands[p].sort((a,b)=>{
+      if(a.suit!==b.suit) return SUITS.findIndex(s=>s.id===a.suit) - SUITS.findIndex(s=>s.id===b.suit);
+      return rankIndex(a.val) - rankIndex(b.val);
+    });
+  }
+  G.trumpSuit = null;
+  G.isBotifarra = false;
+  G.doubleLevel = 0;
+  G.doubleBy = {};
+  G.played = [];
+  G.void = [{},{},{},{}];
+  G.lastTrick = null;
+  updateLastTrickBtn();
+  G.trick = [];
+  G.handPoints = [0,0];
+  updateTrumpBadge();
+  ['south','north','west','east'].forEach(pos=>{ el.slot[pos].innerHTML=''; });
+  el.handSouth.innerHTML=''; el.handNorth.innerHTML=''; el.handWest.innerHTML=''; el.handEast.innerHTML='';
+  setMessage('Barrejant les cartes…');
+  await animateShuffle();
+  setMessage('Repartint les cartes…');
+  Snd.dealSeq(12);
+  renderHands({dealAnim:true});
+  await sleep(650);
+}
+
+function animateShuffle(){
+  return new Promise(resolve=>{
+    const stack = document.createElement('div');
+    stack.className = 'shuffle-stack';
+    for(let i=0;i<6;i++){
+      const b = document.createElement('div');
+      b.className = 'card-back';
+      const rot = (i-2.5)*4;
+      const shift = 3 + (i%3)*2;
+      b.style.setProperty('--rot', rot+'deg');
+      b.style.setProperty('--shift', shift+'px');
+      b.style.animationDelay = (i*40)+'ms';
+      b.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`;
+      stack.appendChild(b);
+    }
+    el.table.appendChild(stack);
+    Snd.shuffle();
+    const ep = EPOCH;
+    setTimeout(()=>{
+      stack.classList.add('fade-out');
+      setTimeout(()=>{ stack.remove(); if(ep===EPOCH) resolve(); }, 260);
+    }, 620);
+  });
+}
+
+function showHandEndOverlay(res){
+  return new Promise(resolve=>{
+    const ov = document.createElement('div');
+    ov.className = 'overlay';
+    const chTeam = PLAYERS[G.trumpChooser].team;
+    const kind = G.isBotifarra ? 'Botifarra' : 'Trumfo ' + suitLabel(G.trumpSuit);
+    let line;
+    if(res.winner===null){ line = 'Empat a 36: ningú no puntua.'; }
+    else {
+      const wName = res.winner===0 ? 'Tu i Nord' : 'Oest i Est';
+      line = wName + ' puntueu ' + res.excess + ' x ' + res.mult + ' = <strong style="display:inline;font-size:inherit">' + res.gained + '</strong> punts.';
+      if(res.winner!==chTeam) line += ' (El trumfo no ha sortit bé a qui l\'ha triat.)';
+    }
+    ov.innerHTML = `
+      <div class="overlay-card">
+        <h2>Fi de la mà</h2>
+        <p>${kind} · triat per ${who(G.trumpChooser)} · x${res.mult}<br>Cal passar de 36 punts (de 72) per puntuar l'excés.</p>
+        <div class="hand-tally">
+          <div>Tu &amp; Nord<strong>${G.handPoints[0]}</strong></div>
+          <div>Oest &amp; Est<strong>${G.handPoints[1]}</strong></div>
+        </div>
+        <p>${line}</p>
+        <button class="overlay-btn" id="nextHandBtn">Següent mà</button>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    ov.querySelector('#nextHandBtn').addEventListener('click', ()=>{
+      ov.remove();
+      resolve();
+    });
+  });
+}
+
+function spawnConfetti(){
+  const colors = ['#f0c869','#d1a13e','#a8342b','#4f6b2d','#f6efe1'];
+  for(let i=0;i<70;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random()*100+'vw';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (2.2+Math.random()*1.6)+'s';
+    c.style.opacity = String(.7+Math.random()*.3);
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(), 4200);
+  }
+}
+
+function showGameEndOverlay(winningTeam){
+  Snd.game(winningTeam===0);
+  if(winningTeam===0) spawnConfetti();
+  const ov = document.createElement('div');
+  ov.className = 'overlay game-end';
+  const won = winningTeam===0;
+  ov.innerHTML = `
+    <div class="overlay-card">
+      <h2>${won ? 'Heu guanyat!' : 'Heu perdut'}</h2>
+      <p>${won ? 'Tu i Nord heu arribat primer a ' + TARGET_SCORE + ' punts.' : 'Oest i Est han arribat primer a ' + TARGET_SCORE + ' punts.'}</p>
+      <div class="hand-tally">
+        <div>Tu &amp; Nord<strong>${G.teamScore[0]}</strong></div>
+        <div>Oest &amp; Est<strong>${G.teamScore[1]}</strong></div>
+      </div>
+      <div class="overlay-actions">
+        <button class="overlay-btn" id="restartBtn" type="button">Una altra partida</button>
+        <button class="overlay-btn secondary" id="exitBtn" type="button">Sortir del joc</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  const result = { won, scores: [G.teamScore[0], G.teamScore[1]] };
+  ov.querySelector('#restartBtn').addEventListener('click', ()=>{
+    Snd.click();
+    ov.remove();
+    startGame();
+  });
+  ov.querySelector('#exitBtn').addEventListener('click', ()=>{
+    Snd.click();
+    exitGame(ov, result);
+  });
+}
+
+// "Sortir del joc": tries to close the window/app; a browser tab that was not opened by a script
+// refuses, so a goodbye screen is shown instead (with a way back to playing).
+function exitGame(endOverlay, result){
+  EPOCH++;                       // nothing else runs in the background
+  southClickResolver = null;
+  try{ window.close(); }catch(e){}
+  setTimeout(()=>{
+    if(endOverlay) endOverlay.remove();
+    document.querySelectorAll('.confetti').forEach(n=>n.remove());
+    const ov = document.createElement('div');
+    ov.className = 'overlay exit-screen';
+    ov.innerHTML = `
+      <div class="overlay-card">
+        <h2>Gràcies per jugar!</h2>
+        <p>${result.won ? 'Heu guanyat' : 'Heu perdut'} l'última partida per ${result.scores[0]} a ${result.scores[1]}.<br>
+        Ja pots tancar aquesta pestanya o l'aplicació.</p>
+        <div class="overlay-actions">
+          <button class="overlay-btn" id="backBtn" type="button">Tornar a jugar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(ov);
+    ov.querySelector('#backBtn').addEventListener('click', ()=>{
+      Snd.click();
+      ov.remove();
+      startGame();
+    });
+  }, 250);
+}
+
+async function runHandCycle(){
+  await dealHand();
+  await trumpAndDoublingPhase();
+  await playAllTricks();
+
+  const chTeam = PLAYERS[G.trumpChooser].team;
+  const ct = G.handPoints[chTeam];
+  let winner = null;
+  if(ct>36) winner = chTeam; else if(ct<36) winner = 1-chTeam;
+  const excess = winner===null ? 0 : Math.abs(ct-36);
+  const mult = multiplier();
+  const gained = excess*mult;
+  if(winner!==null) G.teamScore[winner] += gained;
+  updateScores(true);
+
+  await sleep(400);
+  recordHand({winner, excess, mult, gained});
+  if(winner!==null) Snd.hand(winner===0);
+  await showHandEndOverlay({winner, excess, mult, gained});
+
+  if(G.teamScore[0] >= TARGET_SCORE || G.teamScore[1] >= TARGET_SCORE){
+    const w = G.teamScore[0] >= TARGET_SCORE ? 0 : 1;
+    totals.games++; if(w===0) totals.gamesWon++; saveStats(); renderStats();
+    showGameEndOverlay(w);
+    return;
+  }
+  G.dealerStart = NEXT(G.dealerStart);
+  await runHandCycle();
+}
+
+async function startGame(){
+  EPOCH++;                       // cancels the loop of any game still running
+  southClickResolver = null;
+  closeLastTrick();
+  document.querySelectorAll('.bid-panel, .overlay, .shuffle-stack').forEach(n=>n.remove());
+  el.flight.innerHTML = '';
+  ['south','north','west','east'].forEach(pos=>{ el.slot[pos].innerHTML = ''; });
+  G = freshState();
+  updateLastTrickBtn();
+  displayedScore = [0,0];
+  renderStats();
+  el.scoreTeam0.textContent = '0';
+  el.scoreTeam1.textContent = '0';
+  updateTrumpBadge();
+  setMessage('Benvingut a la Botifarra!');
+  await sleep(400);
+  await runHandCycle();
+}
+
+el.newGameBtn.addEventListener('click', ()=>{
+  document.querySelectorAll('.overlay').forEach(o=>o.remove());
+  document.querySelectorAll('.bid-panel').forEach(o=>o.remove());
+  startGame();
+});
+
+el.assistToggle.addEventListener('click', ()=>{
+  assistMode = !assistMode;
+  el.assistToggle.setAttribute('aria-pressed', String(assistMode));
+  el.assistToggle.querySelector('.txt').textContent = assistMode
+    ? 'Ajuda: cartes jugables'
+    : 'Ajuda desactivada';
+  // If we're mid-turn waiting for the user's card, re-render immediately with the new mode.
+  if(southClickResolver){
+    renderHands({validSet: currentValidSet, interactive:true});
+  }
+});
+
+(function(){
+  const b = document.getElementById('soundToggle');
+  function paint(){
+    b.setAttribute('aria-pressed', String(Snd.isOn()));
+    b.querySelector('.txt').textContent = Snd.isOn() ? 'So activat' : 'So desactivat';
+  }
+  paint();
+  b.addEventListener('click', ()=>{ Snd.set(!Snd.isOn()); paint(); });
+})();
+
+(function(){
+  const KEY = 'botifarra-panels';
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){}
+  const narrow = window.matchMedia && window.matchMedia('(max-width:640px)').matches;
+  document.querySelectorAll('.sidebar .panel').forEach((panel, n)=>{
+    const h2 = panel.querySelector('h2');
+    if(!h2) return;
+    const title = h2.textContent.trim();
+    const body = document.createElement('div'); body.className = 'panel-body';
+    const inner = document.createElement('div'); inner.className = 'panel-inner';
+    body.id = 'panel-body-' + n;
+    Array.from(panel.childNodes).forEach(node=>{ if(node!==h2) inner.appendChild(node); });
+    body.appendChild(inner);
+    panel.appendChild(body);
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'panel-head';
+    btn.setAttribute('aria-controls', body.id);
+    btn.innerHTML = '<span>'+title+'</span><svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 5 5-5"/></svg>';
+    h2.textContent = ''; h2.appendChild(btn);
+    function apply(collapsed){
+      panel.classList.toggle('collapsed', collapsed);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      inner.toggleAttribute('inert', collapsed);
+      inner.setAttribute('aria-hidden', String(collapsed));
+    }
+    const initial = (title in saved) ? !!saved[title] : (narrow && n>0);
+    apply(initial);
+    btn.addEventListener('click', ()=>{
+      const c = !panel.classList.contains('collapsed');
+      apply(c);
+      saved[title] = c;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+})();
+
+document.getElementById('lastTrickBtn').addEventListener('click', showLastTrick);
+
+document.addEventListener('pointerdown', (e)=>{
+  if(e.target.closest && e.target.closest('#handSouth .card')) return;
+  el.handSouth.querySelectorAll('.card.selected').forEach(n=>n.classList.remove('selected'));
+});
+
+let resetArmed = false;
+document.getElementById('statsReset').addEventListener('click', function(){
+  if(!resetArmed){ resetArmed = true; this.textContent = 'Segur? Torna a prémer'; setTimeout(()=>{ resetArmed=false; this.textContent='Esborra els totals'; }, 3500); return; }
+  resetArmed = false; this.textContent = 'Esborra els totals';
+  totals = defaultStats(); saveStats(); renderStats();
+});
+
+startGame();
+
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(e){ console.warn('SW no registrat', e); });
+  });
+}
+</script>
+</body>
+</html>
